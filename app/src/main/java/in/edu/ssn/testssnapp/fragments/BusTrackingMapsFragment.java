@@ -98,7 +98,7 @@ public class BusTrackingMapsFragment extends Fragment implements GoogleMap.OnMar
         super.onResume();
         busTrackingMap.onResume();
         busTrackingAdapter.notifyDataSetChanged();
-        if (currentlySelectedBus != null) googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(busVolunteersBidiMap.get(currentlySelectedBus).getLocation(), googleMap.getCameraPosition().zoom));
+        if (busVolunteersBidiMap.get(currentlySelectedBus) != null) googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(busVolunteersBidiMap.get(currentlySelectedBus).getLocation(), googleMap.getCameraPosition().zoom));
     }
 
     @Override
@@ -186,7 +186,7 @@ public class BusTrackingMapsFragment extends Fragment implements GoogleMap.OnMar
                     int speed = ds.child("speed").getValue() != null ? (int) (ds.child("speed").getValue(int.class) * 3.6 < 1 ? 0 : ds.child("speed").getValue(int.class) * 3.6) : 0;
                     boolean isSharingLoc = ds.child("sharingLoc").getValue(boolean.class) == null ? false : ds.child("sharingLoc").getValue(boolean.class);
 
-                    if (latLongString == null || routeNo == null || !isSharingLoc)
+                    if (latLongString == null || routeNo == null)
                         continue;
 
                     if (currentlySelectedBus == null) currentlySelectedBus = routeNo;
@@ -194,24 +194,21 @@ public class BusTrackingMapsFragment extends Fragment implements GoogleMap.OnMar
                     int sep = latLongString.indexOf(',');
                     LatLng currentlatLongs = new LatLng(Double.parseDouble(latLongString.substring(0, sep - 1)), Double.parseDouble(latLongString.substring(sep + 1)));
 
-                    BusObject busObject = busVolunteersBidiMap.get(currentlySelectedBus);
-
                     if (!busVolunteersBidiMap.containsKey(routeNo))
                         addNewBusMarker(routeNo, sharerId, currentlatLongs, speed, isSharingLoc);
 
                     else if (!sharerId.equals("null")) {
                         BusObject object = busVolunteersBidiMap.get(routeNo);
                         object.setLocation(currentlatLongs);
-                        if (busObject.getRouteNo().equals(currentlySelectedBus))
-                            googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentlatLongs, googleMap.getCameraPosition().zoom));
-
                         object.setSpeed(speed);
                         object.setSharerOnline(isSharingLoc);
 
-                        if (!sharerId.equals(busObject.getCurrentVolunteerId()))
+                        if (!sharerId.equals(object.getCurrentVolunteerId()))
                             busTrackingAdapter.setOnlineStatus(routeNo, isSharingLoc);
 
                         busVolunteersBidiMap.put(routeNo, object);
+                        if (object.getRouteNo().equals(currentlySelectedBus))
+                            googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentlatLongs, googleMap.getCameraPosition().zoom));
                     }
 
                 }
