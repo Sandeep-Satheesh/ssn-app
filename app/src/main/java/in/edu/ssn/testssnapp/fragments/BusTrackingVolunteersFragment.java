@@ -55,6 +55,7 @@ public class BusTrackingVolunteersFragment extends Fragment {
     String routeNo, userId;
     DatabaseReference busLocRef;
     boolean darkMode;
+    boolean volunteers;
     volatile boolean isSharingLoc = false;
 
     @Override
