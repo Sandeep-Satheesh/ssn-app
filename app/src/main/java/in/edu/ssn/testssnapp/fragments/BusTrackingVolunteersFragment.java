@@ -92,6 +92,7 @@ public class BusTrackingVolunteersFragment extends Fragment {
                 false,
                 (dialog, which) -> {
                     SharedPref.putBoolean(getContext(), "stopbutton", false);
+                    SharedPref.putString(getContext(), "routeno", "");
                     routeNo = etRouteNo.getText().toString();
 
                     Intent i = new Intent(getContext(), TransmitLocationService.class);
@@ -123,7 +124,7 @@ public class BusTrackingVolunteersFragment extends Fragment {
                     if ((s != null && !s.equals("null")) && (b != null && b))
                         Toast.makeText(getContext(), "Cannot start location sharing! There's already another volunteer sharing location for this bus!", Toast.LENGTH_LONG).show();
                     else {
-                        SharedPref.putString(getContext(), "routeno", BusTrackingVolunteersFragment.this.routeNo);
+                        SharedPref.putString(BusTrackingVolunteersFragment.this.getContext(), "routeno", BusTrackingVolunteersFragment.this.routeNo);
                         SharedPref.putBoolean(getContext(), "stopbutton", true);
                         checkForLocationPermissionsAndAvailability();
                     }
@@ -146,7 +147,7 @@ public class BusTrackingVolunteersFragment extends Fragment {
     }
 
     private void syncSharedPrefsWithRealtimeDB() {
-        String routeStr = etRouteNo.getText().toString();
+        String routeStr = SharedPref.getString(getContext(), "routeno");
         if (routeStr.isEmpty()) { enableControls(); return; }
 
         busLocRef.addListenerForSingleValueEvent(new ValueEventListener() {
@@ -154,7 +155,7 @@ public class BusTrackingVolunteersFragment extends Fragment {
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 if (!dataSnapshot.child(routeStr).exists()) {
                     enableControls();
-                    SharedPref.putBoolean(getContext(), "stopbutton", false);
+                    SharedPref.putBoolean(BusTrackingVolunteersFragment.this.getContext(), "stopbutton", false);
                 }
                 else disableControls();
             }
