@@ -260,6 +260,10 @@ public class BusTrackingMapsFragment extends Fragment implements GoogleMap.OnMar
 
             @Override
             public void onSpeedChanged(String r, int newSpeed) {
+                if (busMarker.isInfoWindowShown()) {
+                    busMarker.hideInfoWindow();
+                    busMarker.showInfoWindow();
+                }
             }
         }));
     }
