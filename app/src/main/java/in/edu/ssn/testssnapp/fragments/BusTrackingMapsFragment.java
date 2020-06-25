@@ -36,6 +36,7 @@ import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Set;
 
 import in.edu.ssn.testssnapp.R;
 import in.edu.ssn.testssnapp.adapters.BusTrackingAdapter;
@@ -213,7 +214,8 @@ public class BusTrackingMapsFragment extends Fragment implements GoogleMap.OnMar
 
                 }
                 if (dataSnapshot.getChildrenCount() < busVolunteersBidiMap.size() && !busVolunteersBidiMap.isEmpty()) {
-                    for (String s : busVolunteersBidiMap.keySet()) {
+                    Set<String> routeSet = busVolunteersBidiMap.keySet();
+                    for (String s : routeSet) {
                         if (!dataSnapshot.child(s).exists()) {
                             busVolunteersBidiMap.get(s).getBusMarker().remove();
                             busVolunteersBidiMap.remove(s);

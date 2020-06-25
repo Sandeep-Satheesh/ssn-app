@@ -18,10 +18,15 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.google.android.gms.maps.model.LatLng;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import in.edu.ssn.testssnapp.BusTrackingActivity;
 import in.edu.ssn.testssnapp.R;
@@ -30,6 +35,7 @@ import in.edu.ssn.testssnapp.utils.SharedPref;
 public class TransmitLocationService extends Service implements LocationListener {
     DatabaseReference busLocDBRef;
     LocationManager locationManager;
+    int SSNCEPolygon[]; //TODO: The polygon within which we have to check to stop service automatically; check note at end.
     public static final String ACTION_START_FOREGROUND_SERVICE = "ACTION_START_FOREGROUND_SERVICE";
     public static final String ACTION_STOP_FOREGROUND_SERVICE = "ACTION_STOP_FOREGROUND_SERVICE";
     String routeNo, latLongString, userID;
@@ -37,6 +43,7 @@ public class TransmitLocationService extends Service implements LocationListener
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+
         if (intent == null || intent.getAction() == null)
             return super.onStartCommand(intent, flags, startId);
 
@@ -44,6 +51,23 @@ public class TransmitLocationService extends Service implements LocationListener
         routeNo = intent.getStringExtra("routeNo");
         userID = SharedPref.getString(getApplicationContext(),"email");
         busLocDBRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo).getRef();
+
+        busLocDBRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                String s = dataSnapshot.child("currentSharerID").getValue(String.class);
+                if (s == null || (!s.equals("null") && !s.equals(userID))) {
+                    locationManager.removeUpdates(TransmitLocationService.this);
+                    stopForeground(true);
+                    stopSelf();
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
 
         switch (intent.getAction()) {
             case ACTION_START_FOREGROUND_SERVICE:
@@ -124,6 +148,8 @@ public class TransmitLocationService extends Service implements LocationListener
         speed =(int) location.getSpeed();
         busLocDBRef.child("speed").setValue(speed);
         busLocDBRef.child("sharingLoc").setValue(true);
+
+        //TODO: auto-stop near clg
     }
 
     @Override
@@ -139,7 +165,6 @@ public class TransmitLocationService extends Service implements LocationListener
                     speed =(int) location.getSpeed();
                     busLocDBRef.child("speed").setValue(speed);
                     busLocDBRef.child("sharingLoc").setValue(true);
-
                 }
             } else if (status == LocationProvider.TEMPORARILY_UNAVAILABLE) {
                 busLocDBRef.child("sharingLoc").setValue(false);
@@ -172,6 +197,7 @@ public class TransmitLocationService extends Service implements LocationListener
         } catch (SecurityException e) {
             e.printStackTrace();
         }
+
     }
 
     @Override
@@ -183,3 +209,23 @@ public class TransmitLocationService extends Service implements LocationListener
 
 }
 
+/*TODO: Convert this code to java and put it in the service, as a function, to check if a point lies within a polygon
+function inside(point, vs) {
+    // ray-casting algorithm based on
+    // http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
+
+    var x = point[0], y = point[1];
+
+    var inside = false;
+    for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+        var xi = vs[i][0], yi = vs[i][1];
+        var xj = vs[j][0], yj = vs[j][1];
+
+        var intersect = ((yi > y) != (yj > y))
+            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+
+    return inside;
+};
+ */

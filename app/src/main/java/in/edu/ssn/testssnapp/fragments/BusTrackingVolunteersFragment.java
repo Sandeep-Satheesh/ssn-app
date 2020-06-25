@@ -149,7 +149,11 @@ public class BusTrackingVolunteersFragment extends Fragment {
 
     private void syncSharedPrefsWithRealtimeDB() {
         String routeStr = SharedPref.getString(getContext(), "routeno");
-        if (routeStr.isEmpty()) { enableControls(); return; }
+        if (routeStr == null || routeStr.isEmpty()) {
+            enableControls();
+            SharedPref.putBoolean(BusTrackingVolunteersFragment.this.getContext(), "stopbutton", false);
+            return;
+        }
 
         busLocRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -157,6 +161,14 @@ public class BusTrackingVolunteersFragment extends Fragment {
                 if (!dataSnapshot.child(routeStr).exists()) {
                     enableControls();
                     SharedPref.putBoolean(BusTrackingVolunteersFragment.this.getContext(), "stopbutton", false);
+                    SharedPref.putString(getContext(), "routeno", "");
+                }
+                else if (SharedPref.getBoolean(BusTrackingVolunteersFragment.this.getContext(), "stopbutton")) {
+                    String s = dataSnapshot.child("currentSharerID").getValue(String.class);
+                    if (s == null || s.equals(SharedPref.getString(getContext(), "email"))) {
+                        enableControls();
+                        busLocRef.child(routeStr).removeValue();
+                    }
                 }
                 else disableControls();
             }
