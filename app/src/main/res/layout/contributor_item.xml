@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:clickable="true"
+    android:foreground="?selectableItemBackground"
+    android:id="@+id/containerRL">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <ImageView
+            android:id="@+id/dpIV"
+            android:layout_width="@dimen/_42sdp"
+            android:layout_height="@dimen/_42sdp"
+            android:layout_margin="@dimen/_8sdp"
+            android:transitionName="userImageTrans"
+            android:layout_centerVertical="true" />
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_toRightOf="@+id/dpIV"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="@dimen/_3sdp">
+
+            <TextView
+                android:id="@+id/nameTV"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:textSize="@dimen/_14ssp"
+                android:textColor="#000000"
+                android:fontFamily="@font/open_sans_bold"/>
+
+            <TextView
+                android:id="@+id/positionTV"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:layout_below="@+id/nameTV"
+                android:textSize="@dimen/_10ssp"
+                android:textColor="#1D1D1D"
+                android:fontFamily="@font/open_sans"/>
+
+        </RelativeLayout>
+
+    </RelativeLayout>
+
+</RelativeLayout>

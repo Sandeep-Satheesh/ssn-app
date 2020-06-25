@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="yellow">#FFE607</color>
+    <color name="green">#11E911</color>
+    <color name="bus_offline_yellow">#FFC107</color>
+</resources>

@@ -1,0 +1,53 @@
+// The Cloud Functions for Firebase SDK to create Cloud Functions and setup triggers.
+const functions = require('firebase-functions');
+// The Firebase Admin SDK to access Cloud Firestore.
+const admin = require('firebase-admin');
+const user = require('firebase-functions/lib/providers/auth');
+var serviceAccount = require('./serviceAccountKey.json');
+const Message = require('firebase-functions/lib/providers/pubsub');
+const error = require('firebase-functions/lib/logger');
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: 'https://testssnceapp-38ee9.firebaseio.com'
+});
+
+exports.assignSharer = functions.database.ref('Bus Location Sharers/{routeNo}/')
+.onCreate((snapshot) => {
+    var data = snapshot.val();    
+    if (snapshot.numChildren() === 1) {
+        var userId = Object.keys(data)[0];
+        var tokenId = Object.values(data[userId])[0];
+        userId = JSON.stringify(userId);
+        //tokenId = JSON.stringify(tokenId);
+        console.log('Token ID: ', tokenId, ', User ID: ', userId, ',\nsnapshot: ', snapshot, ',\nsnapshot.val(): ', snapshot.val());
+        if (tokenId === null) {
+            console.log('TOKEN ID IS NULL! EXITING...');
+            return null;
+        }
+
+        //send msg to volunteer to start sharing.
+        var payload = {
+            data : {
+                title : userId,
+                message : 'start-sharing-request'
+            },
+            token : `${tokenId}`
+        };
+        
+        /*return admin.messaging().sendToDevice(tokenId, payload).then(function (response) {
+            console.log('Sent start command to token ID: ', tokenId, ' and the message is: ', payload);
+            return null;
+
+        }).catch(function (error) {
+            console.log('Error sending msg: ', error);
+        }); */
+        return admin.messaging().send(payload).then((response) => {
+            console.log('Sent start command to token ID: ', tokenId, ' and the message is: ', payload);
+            return response;
+        }).catch((error) => {
+            console.log('Error sending msg: ', error);
+        });
+    }
+    return null;
+});

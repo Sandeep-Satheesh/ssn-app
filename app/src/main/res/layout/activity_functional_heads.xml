@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	xmlns:tools="http://schemas.android.com/tools"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	tools:context=".FunctionalHeadsActivity"
+	android:background="@android:color/white">
+
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"
+		android:orientation="vertical">
+
+		<androidx.recyclerview.widget.RecyclerView
+			android:layout_width="match_parent"
+			android:layout_height="match_parent"
+			android:paddingStart="@dimen/_10sdp"
+			android:paddingBottom="@dimen/_10sdp"
+			android:paddingEnd="@dimen/_10sdp"
+			android:paddingTop="@dimen/_92sdp"
+			android:clipToPadding="false"
+			android:id="@+id/helplineRV"/>
+	</LinearLayout>
+
+
+	<ImageView
+		android:id="@+id/bgIV"
+		android:layout_width="match_parent"
+		android:layout_height="@dimen/_82sdp"
+		android:background="@drawable/tool_bar_curve"/>
+
+	<RelativeLayout
+		android:id="@+id/layout1"
+		android:layout_width="match_parent"
+		android:layout_height="@dimen/_82sdp">
+
+		<ImageView
+			android:id="@+id/backIV"
+			android:layout_width="@dimen/_35sdp"
+			android:layout_height="@dimen/_35sdp"
+			app:srcCompat="@drawable/ic_back"
+			android:layout_centerVertical="true"
+			android:layout_marginStart="@dimen/_22sdp"/>
+
+		<TextView
+			android:id="@+id/title1TV"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="Helpline"
+			android:textColor="#ffffff"
+			android:textSize="@dimen/_16ssp"
+			android:fontFamily="@font/open_sans_bold"
+			android:layout_toRightOf="@+id/backIV"
+			android:layout_marginStart="@dimen/_12sdp"
+			android:layout_marginTop="@dimen/_15sdp"/>
+
+		<TextView
+			android:id="@+id/descTV"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="@string/helpline_desc"
+			android:textColor="#80FFFFFF"
+			android:textSize="@dimen/_9ssp"
+			android:paddingRight="@dimen/_5sdp"
+			android:fontFamily="@font/open_sans"
+			android:layout_toRightOf="@+id/backIV"
+			android:layout_below="@+id/title1TV"
+			android:layout_marginStart="@dimen/_12sdp" />
+
+	</RelativeLayout>
+
+
+
+</RelativeLayout>

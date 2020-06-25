@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	xmlns:app="http://schemas.android.com/apk/res-auto">
+
+	<androidx.core.widget.NestedScrollView
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:scrollbars="none">
+
+		<LinearLayout
+			android:layout_width="match_parent"
+			android:layout_height="match_parent"
+			android:orientation="vertical">
+
+			<RelativeLayout
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content">
+
+				<androidx.recyclerview.widget.RecyclerView
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:clipToPadding="false"
+					android:visibility="invisible"
+					android:id="@+id/subs_RV"/>
+
+				<RelativeLayout
+					android:id="@+id/layout_subscribed"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:gravity="center"
+					android:layout_centerVertical="true"
+					android:layout_centerHorizontal="true"
+					android:layout_marginStart="@dimen/_20sdp"
+					android:layout_marginEnd="@dimen/_20sdp">
+
+					<RelativeLayout
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:layout_marginTop="@dimen/_20sdp"
+						android:gravity="center"
+						android:layout_centerHorizontal="true"
+						android:layout_marginBottom="@dimen/_20sdp">
+
+						<TextView
+							android:id="@+id/text1TV"
+							android:layout_width="wrap_content"
+							android:layout_height="wrap_content"
+							android:fontFamily="@font/open_sans_semi_bold"
+							android:text="No Subscriptions"
+							android:layout_centerHorizontal="true"
+							android:textColor="@color/colorAccentText"
+							android:gravity="center"
+							android:textSize="@dimen/_14ssp" />
+
+						<TextView
+							android:id="@+id/text2TV"
+							android:layout_width="wrap_content"
+							android:layout_height="wrap_content"
+							android:fontFamily="@font/open_sans"
+							android:text="Hit the bell icon to get notified for new feeds."
+							android:layout_centerHorizontal="true"
+							android:textColor="@color/colorAccentText"
+							android:layout_below="@+id/text1TV"
+							android:layout_marginTop="@dimen/_5sdp"
+							android:gravity="center"
+							android:textSize="@dimen/_12ssp" />
+					</RelativeLayout>
+
+				</RelativeLayout>
+
+			</RelativeLayout>
+
+			<TextView
+				android:id="@+id/suggestionTV"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:text="You may like"
+				android:visibility="gone"
+				android:fontFamily="@font/open_sans_bold"
+				android:textSize="@dimen/_14ssp"
+				android:textColor="@color/colorAccent"
+				android:layout_marginStart="@dimen/_15sdp"
+				android:layout_marginBottom="@dimen/_10sdp"/>
+
+			<androidx.recyclerview.widget.RecyclerView
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:clipToPadding="false"
+				android:id="@+id/unsubs_RV"/>
+
+			<com.facebook.shimmer.ShimmerFrameLayout
+				android:id="@+id/shimmer_view"
+				android:layout_width="match_parent"
+				android:layout_height="match_parent"
+				android:visibility="gone"
+				app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior">
+
+				<LinearLayout
+					android:orientation="vertical"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content">
+
+					<include layout="@layout/student_post_item_shimmering"/>
+					<include layout="@layout/student_post_item_shimmering"/>
+					<include layout="@layout/student_post_item_shimmering"/>
+				</LinearLayout>
+			</com.facebook.shimmer.ShimmerFrameLayout>
+
+			<RelativeLayout
+				android:id="@+id/layout_empty_feed"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_gravity="center"
+				android:visibility="gone"
+				android:layout_marginStart="@dimen/_20sdp"
+				android:layout_marginEnd="@dimen/_20sdp">
+
+				<RelativeLayout
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="@dimen/_20sdp"
+					android:gravity="center"
+					android:layout_centerHorizontal="true"
+					android:layout_marginBottom="@dimen/_20sdp">
+
+					<com.airbnb.lottie.LottieAnimationView
+						android:id="@+id/lottie"
+						android:layout_width="match_parent"
+						android:layout_height="@dimen/_250sdp"
+						app:lottie_rawRes="@raw/posts"
+						app:lottie_loop="false"
+						app:lottie_autoPlay="true" />
+
+					<TextView
+						android:id="@+id/text11TV"
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:fontFamily="@font/open_sans_semi_bold"
+						android:text="No Posts"
+						android:layout_centerHorizontal="true"
+						android:layout_marginTop="@dimen/_200sdp"
+						android:textColor="@color/colorAccentText"
+						android:gravity="center"
+						android:textSize="@dimen/_14ssp" />
+
+					<TextView
+						android:id="@+id/text22TV"
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:fontFamily="@font/open_sans"
+						android:text="We'll let you know for new posts till then stay tuned."
+						android:layout_centerHorizontal="true"
+						android:textColor="@color/colorAccentText"
+						android:layout_below="@id/text11TV"
+						android:layout_marginTop="@dimen/_5sdp"
+						android:gravity="center"
+						android:textSize="@dimen/_12ssp" />
+				</RelativeLayout>
+
+			</RelativeLayout>
+
+			<androidx.recyclerview.widget.RecyclerView
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:clipToPadding="false"
+				android:id="@+id/feed_RV"/>
+
+		</LinearLayout>
+
+	</androidx.core.widget.NestedScrollView>
+
+</LinearLayout>

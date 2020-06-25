@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:tools="http://schemas.android.com/tools"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	tools:context=".onboarding.OneFragment">
+
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:orientation="vertical"
+		android:layout_centerInParent="true">
+		<RelativeLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginStart="@dimen/_32sdp"
+			android:layout_marginEnd="@dimen/_32sdp"
+			android:layout_marginTop="@dimen/_32sdp">
+
+			<ImageView
+				android:layout_width="@dimen/boarding_image_size"
+				android:layout_height="@dimen/boarding_image_size"
+				android:id="@+id/tempIV"
+				android:layout_centerInParent="true"/>
+			<ImageView
+				android:layout_width="@dimen/boarding_image_size"
+				android:layout_height="@dimen/boarding_image_size"
+				android:id="@+id/towerIV"
+				android:translationX="-60dp"
+				android:alpha="0"
+				android:layout_centerInParent="true" />
+			<ImageView
+				android:layout_width="@dimen/boarding_image_size"
+				android:layout_height="@dimen/boarding_image_size"
+				android:id="@+id/treesIV"
+				android:scaleX="0"
+				android:scaleY="0"
+				android:alpha="0"
+				android:translationY="@dimen/_150sdp"
+				android:layout_centerInParent="true" />
+		</RelativeLayout>
+		<LinearLayout
+			android:layout_width="match_parent"
+			android:layout_height="@dimen/_125sdp"
+			android:orientation="vertical"
+			android:paddingTop="@dimen/_32sdp"
+			android:background="@android:color/white"
+			android:paddingLeft="@dimen/_32sdp"
+			android:paddingRight="@dimen/_32sdp">
+			<TextView
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:fontFamily="@font/open_sans_bold"
+				android:textColor="@color/onboardingTextColor1"
+				android:gravity="center"
+				android:text="@string/timely_updates"
+				android:textStyle="bold"
+				android:textSize="@dimen/_14sdp"/>
+			<TextView
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:fontFamily="@font/open_sans"
+				android:layout_marginTop="@dimen/_5sdp"
+				android:textColor="@android:color/tab_indicator_text"
+				android:gravity="center"
+				android:text="@string/get_notifications_on_bus_alerts_and_feeds_from_departments"
+				android:textSize="@dimen/_14sdp"/>
+
+		</LinearLayout>
+		<View
+			android:layout_width="match_parent"
+			android:layout_height="@dimen/_40sdp"/>
+	</LinearLayout>
+
+
+</RelativeLayout>

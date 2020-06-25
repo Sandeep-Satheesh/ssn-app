@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	xmlns:tools="http://schemas.android.com/tools"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:background="@android:color/white"
+	tools:context=".onboarding.OnboardingActivity">
+
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:orientation="vertical"
+		android:layout_centerInParent="true">
+
+		<RelativeLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginStart="@dimen/_32sdp"
+			android:layout_marginEnd="@dimen/_32sdp"
+			android:layout_marginTop="@dimen/_32sdp">
+
+			<ImageView
+				android:layout_width="@dimen/boarding_image_size"
+				android:layout_height="@dimen/boarding_image_size"
+				android:id="@+id/backgroundIV2"
+				android:layout_centerInParent="true"
+				android:alpha="0"
+				android:scaleX="0.5"
+				android:scaleY="0.5" />
+
+			<ImageView
+				android:layout_width="@dimen/boarding_image_size"
+				android:layout_height="@dimen/boarding_image_size"
+				android:id="@+id/backgroundIV1"
+				android:layout_centerInParent="true"
+				android:alpha="0" />
+
+			<ImageView
+				android:layout_width="@dimen/boarding_image_size"
+				android:layout_height="@dimen/boarding_image_size"
+				android:id="@+id/backgroundIV"
+				android:layout_centerInParent="true"
+				android:alpha="0"
+				android:scaleX="0.5"
+				android:scaleY="0.5" />
+		</RelativeLayout>
+
+		<LinearLayout
+			android:layout_width="match_parent"
+			android:layout_height="@dimen/_125sdp"
+			android:paddingTop="@dimen/_32sdp"
+			android:paddingLeft="@dimen/_32sdp"
+			android:paddingRight="@dimen/_32sdp">
+		</LinearLayout>
+
+		<RelativeLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content">
+			<com.tbuonomo.viewpagerdotsindicator.DotsIndicator
+				android:id="@+id/dots_indicator"
+				android:layout_width="wrap_content"
+				android:layout_height="@dimen/_30sdp"
+				app:selectedDotColor="@color/pageColor1"
+				app:dotsColor="#ACABAB"
+				android:layout_gravity="center"
+				android:layout_centerInParent="true"
+				app:dotsCornerRadius="@dimen/_6sdp"
+				android:clickable="false"
+				app:dotsSize="@dimen/_12sdp"
+				app:dotsSpacing="@dimen/_4sdp"
+				app:dotsWidthFactor="2.5"
+				/>
+			<View
+				android:layout_width="match_parent"
+				android:layout_height="@dimen/_40sdp"/>
+
+		</RelativeLayout>
+
+	</LinearLayout>
+
+	<androidx.viewpager.widget.ViewPager
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"
+		android:id="@+id/viewPager"/>
+
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:orientation="vertical"
+		android:layout_centerInParent="true">
+
+		<RelativeLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginStart="@dimen/_32sdp"
+			android:layout_marginEnd="@dimen/_32sdp"
+			android:layout_marginTop="@dimen/_32sdp">
+
+			<ImageView
+				android:layout_width="@dimen/boarding_image_size"
+				android:layout_height="@dimen/boarding_image_size"
+				android:layout_centerInParent="true"
+				android:alpha="0"
+				android:scaleX="0.5"
+				android:scaleY="0.5" />
+		</RelativeLayout>
+
+		<LinearLayout
+			android:layout_width="match_parent"
+			android:layout_height="@dimen/_125sdp"
+			android:paddingTop="@dimen/_32sdp"
+			android:paddingLeft="@dimen/_32sdp"
+			android:paddingRight="@dimen/_32sdp"/>
+
+		<RelativeLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content">
+			<View
+				android:layout_width="match_parent"
+				android:layout_height="@dimen/_30sdp"/>
+
+			<androidx.cardview.widget.CardView
+				android:layout_width="match_parent"
+				android:layout_height="@dimen/_40sdp"
+				app:cardCornerRadius="@dimen/_5sdp"
+				android:clickable="true"
+				android:scaleX="0"
+				android:scaleY="0"
+				android:id="@+id/signInCV"
+				android:foreground="?attr/selectableItemBackground"
+				app:cardBackgroundColor="@color/colorAccent"
+				android:layout_marginStart="@dimen/_32sdp"
+				android:layout_marginEnd="@dimen/_32sdp"
+				android:focusable="true">
+
+				<TextView
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_gravity="center"
+					android:gravity="center"
+					android:fontFamily="@font/open_sans_bold"
+					android:textSize="@dimen/_16sdp"
+					android:textColor="@android:color/white"
+					android:text="Get started"/>
+			</androidx.cardview.widget.CardView>
+
+		</RelativeLayout>
+
+	</LinearLayout>
+
+</RelativeLayout>

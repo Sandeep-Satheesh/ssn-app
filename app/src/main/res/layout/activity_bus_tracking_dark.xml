@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/darkColor1"
+    tools:context=".BusTrackingActivity">
+
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:layout_width="match_parent"
+        android:background="@color/darkColor"
+        android:layout_height="wrap_content"
+        android:id="@+id/layout1">
+
+        <com.google.android.material.appbar.AppBarLayout
+            android:id="@+id/searchRL"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:animateLayoutChanges="true"
+            android:background="@color/darkColor"
+            app:expanded="true">
+
+            <com.google.android.material.appbar.CollapsingToolbarLayout
+                android:id="@+id/collapsing_toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/_10sdp"
+                android:fitsSystemWindows="true"
+                app:contentScrim="@color/darkColor"
+                app:expandedTitleTextAppearance="@android:color/transparent"
+                app:layout_scrollFlags="scroll|enterAlwaysCollapsed|snap|exitUntilCollapsed">
+
+                <androidx.appcompat.widget.Toolbar
+                    android:id="@+id/toolbar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@color/darkColor"
+                    android:contentInsetStart="0dp"
+                    android:contentInsetLeft="0dp"
+                    android:contentInsetEnd="0dp"
+                    android:contentInsetRight="0dp"
+                    app:contentInsetEnd="0dp"
+                    app:contentInsetLeft="0dp"
+                    app:contentInsetRight="0dp"
+                    app:contentInsetStart="0dp"
+                    app:layout_collapseMode="pin">
+
+                    <LinearLayout
+                        android:id="@+id/fakeAppbarLL"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:id="@+id/backIV"
+                            android:layout_width="@dimen/_35sdp"
+                            android:layout_height="@dimen/_35sdp"
+                            android:layout_gravity="center"
+                            android:layout_margin="@dimen/_6sdp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="?selectableItemBackground"
+                            android:padding="@dimen/_2sdp"
+                            android:tint="@android:color/white"
+                            app:srcCompat="@drawable/ic_back" />
+
+                        <TextView
+                            android:id="@+id/tv_trackbus"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:layout_weight="1"
+                            android:fontFamily="@font/open_sans_bold"
+                            android:text="@string/track_bus"
+                            android:textColor="@android:color/white"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </androidx.appcompat.widget.Toolbar>
+            </com.google.android.material.appbar.CollapsingToolbarLayout>
+        </com.google.android.material.appbar.AppBarLayout>
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/layout1"
+        android:background="@color/darkColor">
+
+        <com.ogaclejapan.smarttablayout.SmartTabLayout
+            android:id="@+id/viewPagerTab"
+            android:paddingStart="@dimen/_14sdp"
+            android:paddingEnd="@dimen/_14sdp"
+            android:clipToPadding="false"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/_35sdp"
+            android:layout_marginBottom="10dp"
+            android:layout_gravity="bottom|center_horizontal"
+            app:stl_clickable="true"
+            app:stl_dividerColor="@android:color/transparent"
+            app:stl_dividerThickness="0dp"
+            app:stl_indicatorColor="@color/colorAccent"
+            app:stl_indicatorCornerRadius="@dimen/_18sdp"
+            app:stl_indicatorGravity="center"
+            app:stl_indicatorInterpolation="linear"
+            app:stl_indicatorThickness="@dimen/_28sdp"
+            app:stl_underlineColor="@android:color/transparent"
+            app:stl_underlineThickness="0dp"
+            app:stl_customTabTextLayoutId="@layout/custom_tab"
+            app:stl_customTabTextViewId="@+id/customTabTV" />
+
+        <androidx.viewpager.widget.ViewPager
+            android:id="@+id/viewPager"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_below="@+id/viewPagerTab" />
+    </RelativeLayout>
+</RelativeLayout>

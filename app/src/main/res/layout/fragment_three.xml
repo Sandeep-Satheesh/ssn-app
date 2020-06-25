@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:tools="http://schemas.android.com/tools"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	tools:context=".onboarding.ThreeFragment">
+
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:orientation="vertical"
+		android:layout_centerInParent="true">
+		<RelativeLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginStart="@dimen/_32sdp"
+			android:layout_marginEnd="@dimen/_32sdp"
+			android:layout_marginTop="@dimen/_32sdp">
+			<ImageView
+				android:layout_width="@dimen/boarding_image_size"
+				android:layout_height="@dimen/boarding_image_size"
+				android:id="@+id/tempIV"
+				android:layout_centerInParent="true"/>
+			<ImageView
+				android:layout_width="@dimen/boarding_image_size"
+				android:layout_height="@dimen/boarding_image_size"
+				android:id="@+id/hand1IV"
+				android:translationY="@dimen/_30sdp"
+				android:scaleX="0"
+				android:scaleY="0"
+				android:layout_centerInParent="true" />
+			<ImageView
+				android:layout_width="@dimen/boarding_image_size"
+				android:layout_height="@dimen/boarding_image_size"
+				android:id="@+id/hand2IV"
+				android:translationY="@dimen/_70sdp"
+				android:scaleX="0"
+				android:scaleY="0"
+				android:layout_centerInParent="true" />
+			<ImageView
+				android:layout_width="@dimen/boarding_image_size"
+				android:layout_height="@dimen/boarding_image_size"
+				android:id="@+id/hand3IV"
+				android:translationY="@dimen/boarding_image_size"
+				android:scaleX="0"
+				android:scaleY="0"
+				android:layout_centerInParent="true" />
+		</RelativeLayout>
+		<LinearLayout
+			android:layout_width="match_parent"
+			android:layout_height="@dimen/_125sdp"
+			android:orientation="vertical"
+			android:background="@android:color/white"
+			android:paddingTop="@dimen/_32sdp"
+			android:paddingLeft="@dimen/_32sdp"
+			android:paddingRight="@dimen/_32sdp">
+		<TextView
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:fontFamily="@font/open_sans_bold"
+			android:textColor="@color/onboardingTextColor1"
+			android:gravity="center"
+			android:text="@string/view_results"
+			android:textStyle="bold"
+			android:textSize="@dimen/_14sdp"/>
+		<TextView
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:fontFamily="@font/open_sans"
+			android:layout_marginTop="@dimen/_5sdp"
+			android:textColor="@android:color/tab_indicator_text"
+			android:gravity="center"
+			android:text="@string/manage_your_internals_exam_schedule_and_results_with_ease"
+			android:textSize="@dimen/_14sdp"/>
+
+		</LinearLayout>
+		<androidx.cardview.widget.CardView
+			android:layout_width="match_parent"
+			android:layout_height="@dimen/_40sdp"
+			app:cardCornerRadius="@dimen/_5sdp"
+			android:clickable="true"
+			android:scaleX="0"
+			android:scaleY="0"
+			android:id="@+id/signInCV"
+			android:foreground="?attr/selectableItemBackground"
+			app:cardBackgroundColor="@color/colorAccent"
+			android:layout_marginStart="@dimen/_32sdp"
+			android:layout_marginEnd="@dimen/_32sdp"
+			android:focusable="true">
+
+			<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_gravity="center"
+				android:gravity="center"
+				android:fontFamily="@font/open_sans_bold"
+				android:textSize="@dimen/_16sdp"
+				android:textColor="@android:color/white"
+				android:text="Get started"/>
+		</androidx.cardview.widget.CardView>
+
+	</LinearLayout>
+
+</RelativeLayout>

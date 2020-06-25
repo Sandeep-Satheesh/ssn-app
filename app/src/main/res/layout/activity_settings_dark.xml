@@ -1,0 +1,635 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/darkColor"
+    tools:context=".SettingsActivity">
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="@dimen/_82sdp"
+        android:clipToPadding="false"
+        >
+
+        <LinearLayout
+            android:id="@+id/layout2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/_10sdp"
+            android:layout_marginStart="@dimen/_5sdp"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/open_sans_bold"
+                android:layout_marginBottom="@dimen/_3sdp"
+                android:layout_marginStart="@dimen/_10sdp"
+                android:text="Theme"
+                android:textColor="@color/white"
+                android:textSize="@dimen/_14sdp" />
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/_40sdp"
+                android:layout_marginStart="@dimen/_5sdp"
+                android:layout_marginEnd="@dimen/_5sdp">
+
+                <TextView
+                    android:id="@+id/sleep_titleTV"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:layout_marginStart="@dimen/_5sdp"
+                    android:fontFamily="@font/open_sans"
+                    android:paddingEnd="@dimen/_5sdp"
+                    android:singleLine="true"
+                    android:text="Dark mode"
+                    android:textColor="@color/darkTextColorLight"
+                    android:textSize="@dimen/_13sdp" />
+
+                <com.suke.widget.SwitchButton
+                    android:id="@+id/darkModeSwitch"
+                    android:layout_width="@dimen/_40sdp"
+                    android:layout_height="@dimen/_20sdp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:layout_marginEnd="@dimen/_12sdp"
+                    app:sb_background="@color/colorAccentLight"
+                    app:sb_checked_color="@color/colorAccent"
+                    app:sb_show_indicator="false" />
+
+                <View
+                    android:id="@+id/view_sleep_line"
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_alignParentBottom="true"
+                    android:layout_marginStart="@dimen/_5sdp"
+                    android:layout_marginEnd="@dimen/_15sdp"
+                    android:background="@color/divider_line_color_dark" />
+
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:id="@+id/facultyRL"
+                android:visibility="gone"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/_40sdp"
+                android:layout_marginStart="@dimen/_5sdp"
+                android:layout_marginEnd="@dimen/_5sdp">
+
+                <TextView
+                    android:id="@+id/notifTV"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:layout_marginStart="@dimen/_5sdp"
+                    android:fontFamily="@font/open_sans"
+                    android:paddingEnd="@dimen/_5sdp"
+                    android:singleLine="true"
+                    android:text="Notification"
+                    android:textColor="@color/darkTextColorLight"
+                    android:textSize="@dimen/_13sdp" />
+
+                <com.suke.widget.SwitchButton
+                    android:id="@+id/notifSwitch"
+                    android:layout_width="@dimen/_40sdp"
+                    android:layout_height="@dimen/_20sdp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:layout_marginEnd="@dimen/_12sdp"
+                    app:sb_background="@color/colorAccentLight"
+                    app:sb_checked_color="@color/colorAccent"
+                    app:sb_show_indicator="false" />
+
+                <View
+                    android:id="@+id/view_notif_line"
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_alignParentBottom="true"
+                    android:layout_marginStart="@dimen/_5sdp"
+                    android:layout_marginEnd="@dimen/_15sdp"
+                    android:background="@color/divider_line_color_dark" />
+
+            </RelativeLayout>
+
+            <LinearLayout
+                android:id="@+id/notificationLL"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/open_sans_bold"
+                    android:layout_marginTop="@dimen/_12sdp"
+                    android:layout_marginBottom="@dimen/_3sdp"
+                    android:layout_marginStart="@dimen/_10sdp"
+                    android:text="Notifications"
+                    android:textColor="@color/white"
+                    android:textSize="@dimen/_14sdp" />
+
+                <RelativeLayout
+                    android:id="@+id/newsfeedRL"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/_5sdp"
+                    android:layout_marginEnd="@dimen/_5sdp">
+
+                    <TextView
+                        android:id="@+id/newsfeedTV"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:layout_marginStart="@dimen/_5sdp"
+                        android:fontFamily="@font/open_sans"
+                        android:paddingRight="@dimen/_5sdp"
+                        android:singleLine="true"
+                        android:text="Department"
+                        android:textColor="@color/darkTextColorLight"
+                        android:textSize="@dimen/_13sdp" />
+
+                    <com.suke.widget.SwitchButton
+                        android:id="@+id/switch_dept"
+                        android:layout_width="@dimen/_40sdp"
+                        android:layout_height="@dimen/_20sdp"
+                        android:layout_alignParentRight="true"
+                        android:layout_centerVertical="true"
+                        android:layout_marginTop="@dimen/_10sdp"
+                        android:layout_marginEnd="@dimen/_12sdp"
+                        android:layout_marginBottom="@dimen/_10sdp"
+                        app:sb_background="@color/colorAccentLight"
+                        app:sb_checked_color="@color/colorAccent"
+                        app:sb_show_indicator="false" />
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_alignParentBottom="true"
+                        android:layout_marginStart="@dimen/_5sdp"
+                        android:layout_marginEnd="@dimen/_15sdp"
+                        android:background="@color/divider_line_color_dark" />
+                </RelativeLayout>
+
+                <RelativeLayout
+                    android:id="@+id/busalertRL"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/_40sdp"
+                    android:layout_marginStart="@dimen/_5sdp"
+                    android:layout_marginEnd="@dimen/_5sdp">
+
+                    <TextView
+                        android:id="@+id/bus_alert_TV"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:layout_marginStart="@dimen/_5sdp"
+                        android:fontFamily="@font/open_sans"
+                        android:paddingEnd="@dimen/_5sdp"
+                        android:singleLine="true"
+                        android:text="Bus alert"
+                        android:textColor="@color/darkTextColorLight"
+                        android:textSize="@dimen/_13sdp" />
+
+                    <com.suke.widget.SwitchButton
+                        android:id="@+id/switch_bus"
+                        android:layout_width="@dimen/_40sdp"
+                        android:layout_height="@dimen/_20sdp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:layout_marginTop="@dimen/_10sdp"
+                        android:layout_marginEnd="@dimen/_12sdp"
+                        android:layout_marginBottom="@dimen/_10sdp"
+                        app:sb_background="@color/colorAccentLight"
+                        app:sb_checked_color="@color/colorAccent"
+                        app:sb_show_indicator="false" />
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_alignParentBottom="true"
+                        android:layout_marginStart="@dimen/_5sdp"
+                        android:layout_marginEnd="@dimen/_15sdp"
+                        android:background="@color/divider_line_color_dark" />
+                </RelativeLayout>
+
+                <RelativeLayout
+                    android:id="@+id/examcellRL"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/_40sdp"
+                    android:layout_marginStart="@dimen/_5sdp"
+                    android:layout_marginEnd="@dimen/_5sdp">
+
+                    <TextView
+                        android:id="@+id/examcellTV"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:layout_marginStart="@dimen/_5sdp"
+                        android:fontFamily="@font/open_sans"
+                        android:paddingRight="@dimen/_5sdp"
+                        android:singleLine="true"
+                        android:text="Exam cell"
+                        android:textColor="@color/darkTextColorLight"
+                        android:textSize="@dimen/_13sdp" />
+
+                    <com.suke.widget.SwitchButton
+                        android:id="@+id/switch_exam"
+                        android:layout_width="@dimen/_40sdp"
+                        android:layout_height="@dimen/_20sdp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:layout_marginTop="@dimen/_10sdp"
+                        android:layout_marginEnd="@dimen/_12sdp"
+                        android:layout_marginBottom="@dimen/_10sdp"
+                        app:sb_background="@color/colorAccentLight"
+                        app:sb_checked_color="@color/colorAccent"
+                        app:sb_show_indicator="false" />
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_alignParentBottom="true"
+                        android:layout_marginStart="@dimen/_5sdp"
+                        android:layout_marginEnd="@dimen/_15sdp"
+                        android:background="@color/divider_line_color_dark" />
+                </RelativeLayout>
+
+                <RelativeLayout
+                    android:id="@+id/placementRL"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/_40sdp"
+                    android:layout_marginStart="@dimen/_5sdp"
+                    android:layout_marginEnd="@dimen/_5sdp">
+
+                    <TextView
+                        android:id="@+id/placementTV"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:layout_marginStart="@dimen/_5sdp"
+                        android:fontFamily="@font/open_sans"
+                        android:paddingRight="@dimen/_5sdp"
+                        android:singleLine="true"
+                        android:text="Placement"
+                        android:textColor="@color/darkTextColorLight"
+                        android:textSize="@dimen/_13sdp" />
+
+                    <com.suke.widget.SwitchButton
+                        android:id="@+id/switch_place"
+                        android:layout_width="@dimen/_40sdp"
+                        android:layout_height="@dimen/_20sdp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:layout_marginTop="@dimen/_10sdp"
+                        android:layout_marginEnd="@dimen/_12sdp"
+                        android:layout_marginBottom="@dimen/_10sdp"
+                        app:sb_background="@color/colorAccentLight"
+                        app:sb_checked_color="@color/colorAccent"
+                        app:sb_show_indicator="false" />
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_alignParentBottom="true"
+                        android:layout_marginStart="@dimen/_5sdp"
+                        android:layout_marginEnd="@dimen/_15sdp"
+                        android:background="@color/divider_line_color_dark" />
+                </RelativeLayout>
+
+                <RelativeLayout
+                    android:id="@+id/eventRL"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/_5sdp"
+                    android:layout_marginEnd="@dimen/_5sdp">
+
+                    <TextView
+                        android:id="@+id/event_TV"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:layout_marginStart="@dimen/_5sdp"
+                        android:fontFamily="@font/open_sans"
+                        android:paddingRight="@dimen/_5sdp"
+                        android:singleLine="true"
+                        android:text="Event"
+                        android:textColor="@color/darkTextColorLight"
+                        android:textSize="@dimen/_13sdp" />
+
+                    <com.suke.widget.SwitchButton
+                        android:id="@+id/switch_event"
+                        android:layout_width="@dimen/_40sdp"
+                        android:layout_height="@dimen/_20sdp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:layout_marginTop="@dimen/_10sdp"
+                        android:layout_marginEnd="@dimen/_12sdp"
+                        android:layout_marginBottom="@dimen/_10sdp"
+                        app:sb_background="@color/colorAccentLight"
+                        app:sb_checked_color="@color/colorAccent"
+                        app:sb_show_indicator="false" />
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_alignParentBottom="true"
+                        android:layout_marginStart="@dimen/_5sdp"
+                        android:layout_marginEnd="@dimen/_15sdp"
+                        android:background="@color/divider_line_color_dark" />
+                </RelativeLayout>
+                <RelativeLayout
+                    android:id="@+id/chatRL"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/_5sdp"
+                    android:layout_marginEnd="@dimen/_5sdp">
+
+                    <TextView
+                        android:id="@+id/chat_tv"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:layout_marginStart="@dimen/_5sdp"
+                        android:fontFamily="@font/open_sans"
+                        android:paddingRight="@dimen/_5sdp"
+                        android:singleLine="true"
+                        android:text="Global Chat"
+                        android:textColor="@color/darkTextColorLight"
+                        android:textSize="@dimen/_13sdp" />
+
+                    <com.suke.widget.SwitchButton
+                        android:id="@+id/switch_chat"
+                        android:layout_width="@dimen/_40sdp"
+                        android:layout_height="@dimen/_20sdp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:layout_marginTop="@dimen/_10sdp"
+                        android:layout_marginEnd="@dimen/_12sdp"
+                        android:layout_marginBottom="@dimen/_10sdp"
+                        app:sb_background="@color/colorAccentLight"
+                        app:sb_checked_color="@color/colorAccent"
+                        app:sb_show_indicator="false" />
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_alignParentBottom="true"
+                        android:layout_marginStart="@dimen/_5sdp"
+                        android:layout_marginEnd="@dimen/_15sdp"
+                        android:background="@color/divider_line_color_dark" />
+                </RelativeLayout>
+
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/open_sans_bold"
+                android:text="Communication"
+                android:layout_marginTop="@dimen/_12sdp"
+                android:layout_marginBottom="@dimen/_3sdp"
+                android:layout_marginStart="@dimen/_10sdp"
+                android:textColor="@color/white"
+                android:textSize="@dimen/_14sdp" />
+
+            <RelativeLayout
+                android:id="@+id/almaconnetLL"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/_40sdp"
+                android:layout_marginStart="@dimen/_5sdp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/almaconnetTV"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="@dimen/_5sdp"
+                    android:layout_marginEnd="@dimen/_5sdp"
+                    android:fontFamily="@font/open_sans"
+                    android:singleLine="true"
+                    android:text="Almaconnect"
+                    android:textColor="@color/darkTextColorLight"
+                    android:gravity="center_vertical"
+                    android:textSize="@dimen/_13sdp" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_alignParentBottom="true"
+                    android:layout_marginStart="@dimen/_5sdp"
+                    android:layout_marginEnd="@dimen/_15sdp"
+                    android:background="@color/divider_line_color_dark" />
+            </RelativeLayout>
+
+            <TextView
+                android:id="@+id/helplineTV"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/_40sdp"
+                android:layout_marginStart="@dimen/_10sdp"
+                android:layout_marginEnd="@dimen/_5sdp"
+                android:fontFamily="@font/open_sans"
+                android:singleLine="true"
+                android:text="Functional head"
+                android:gravity="center_vertical"
+                android:textColor="@color/darkTextColorLight"
+                android:textSize="@dimen/_13sdp" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_alignParentBottom="true"
+                android:layout_marginStart="@dimen/_10sdp"
+                android:layout_marginEnd="@dimen/_15sdp"
+                android:background="@color/divider_line_color_dark" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/_12sdp"
+                android:layout_marginBottom="@dimen/_3sdp"
+                android:layout_marginStart="@dimen/_10sdp"
+                android:fontFamily="@font/open_sans_bold"
+                android:text="About"
+                android:textColor="@color/white"
+                android:textSize="@dimen/_14sdp" />
+
+            <TextView
+                android:id="@+id/calendar_TV"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/_40sdp"
+                android:gravity="center_vertical"
+                android:layout_marginStart="@dimen/_10sdp"
+                android:layout_marginEnd="@dimen/_5sdp"
+                android:fontFamily="@font/open_sans"
+                android:singleLine="true"
+                android:text="Calendar"
+                android:textColor="@color/darkTextColorLight"
+                android:textSize="@dimen/_13sdp" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginStart="@dimen/_10sdp"
+                android:layout_marginEnd="@dimen/_15sdp"
+                android:background="@color/divider_line_color_dark" />
+
+            <TextView
+                android:id="@+id/contributors_TV"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/_40sdp"
+                android:gravity="center_vertical"
+                android:layout_marginStart="@dimen/_10sdp"
+                android:layout_marginEnd="@dimen/_5sdp"
+                android:fontFamily="@font/open_sans"
+                android:singleLine="true"
+                android:text="Contributors"
+                android:textColor="@color/darkTextColorLight"
+                android:textSize="@dimen/_13sdp" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginStart="@dimen/_10sdp"
+                android:layout_marginEnd="@dimen/_15sdp"
+                android:background="@color/divider_line_color_dark" />
+
+            <TextView
+                android:id="@+id/suggestionTV"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/_40sdp"
+                android:gravity="center_vertical"
+                android:layout_marginStart="@dimen/_10sdp"
+                android:layout_marginEnd="@dimen/_5sdp"
+                android:fontFamily="@font/open_sans"
+                android:singleLine="true"
+                android:text="Make a suggestion"
+                android:textColor="@color/darkTextColorLight"
+                android:textSize="@dimen/_13sdp" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginStart="@dimen/_10sdp"
+                android:layout_marginEnd="@dimen/_15sdp"
+                android:background="@color/divider_line_color_dark" />
+
+            <TextView
+                android:id="@+id/inviteTV"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/_40sdp"
+                android:gravity="center_vertical"
+                android:layout_marginStart="@dimen/_10sdp"
+                android:layout_marginEnd="@dimen/_5sdp"
+                android:fontFamily="@font/open_sans"
+                android:singleLine="true"
+                android:text="Invite friends"
+                android:textColor="@color/darkTextColorLight"
+                android:textSize="@dimen/_13sdp" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginStart="@dimen/_10sdp"
+                android:layout_marginEnd="@dimen/_15sdp"
+                android:background="@color/divider_line_color_dark" />
+
+            <TextView
+                android:id="@+id/rateTV"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/_40sdp"
+                android:gravity="center_vertical"
+                android:layout_marginStart="@dimen/_10sdp"
+                android:layout_marginEnd="@dimen/_5sdp"
+                android:fontFamily="@font/open_sans"
+                android:singleLine="true"
+                android:text="Rate our app"
+                android:textColor="@color/darkTextColorLight"
+                android:textSize="@dimen/_13sdp" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginStart="@dimen/_10sdp"
+                android:layout_marginEnd="@dimen/_15sdp"
+                android:background="@color/divider_line_color_dark" />
+
+            <TextView
+                android:id="@+id/privacyTV"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/_40sdp"
+                android:gravity="center_vertical"
+                android:layout_marginStart="@dimen/_10sdp"
+                android:layout_marginEnd="@dimen/_5sdp"
+                android:fontFamily="@font/open_sans"
+                android:singleLine="true"
+                android:text="Privacy"
+                android:textColor="@color/darkTextColorLight"
+                android:textSize="@dimen/_13sdp" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginStart="@dimen/_10sdp"
+                android:layout_marginEnd="@dimen/_15sdp"
+                android:background="@color/divider_line_color_dark" />
+
+            <TextView
+                android:id="@+id/logoutTV"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/_40sdp"
+                android:gravity="center_vertical"
+                android:layout_marginStart="@dimen/_10sdp"
+                android:layout_marginEnd="@dimen/_5sdp"
+                android:fontFamily="@font/open_sans"
+                android:singleLine="true"
+                android:text="Logout"
+                android:textColor="@color/darkTextColorLight"
+                android:textSize="@dimen/_13sdp" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginStart="@dimen/_10sdp"
+                android:layout_marginEnd="@dimen/_15sdp"
+                android:layout_marginBottom="@dimen/_100sdp"
+                android:background="@color/divider_line_color_dark" />
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+    <ImageView
+        android:id="@+id/bgIV"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/_82sdp"
+        android:background="@drawable/tool_bar_curve_dark"/>
+
+    <RelativeLayout
+        android:id="@+id/layout1"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/_82sdp">
+
+        <ImageView
+            android:id="@+id/backIV"
+            android:layout_width="@dimen/_35sdp"
+            android:layout_height="@dimen/_35sdp"
+            app:srcCompat="@drawable/ic_back"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="@dimen/_22sdp"/>
+
+        <TextView
+            android:id="@+id/title1TV"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Settings"
+            android:textColor="#ffffff"
+            android:textSize="@dimen/_16ssp"
+            android:layout_centerVertical="true"
+            android:fontFamily="@font/open_sans_bold"
+            android:layout_toRightOf="@+id/backIV"
+            android:layout_marginStart="@dimen/_12sdp" />
+
+    </RelativeLayout>
+
+</RelativeLayout>

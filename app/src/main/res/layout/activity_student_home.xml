@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	xmlns:tools="http://schemas.android.com/tools"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:background="@android:color/white"
+	tools:context=".StudentHomeActivity">
+
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:id="@+id/fakeAppbarLL"
+		android:paddingTop="@dimen/_3sdp"
+		android:paddingBottom="@dimen/_3sdp"
+		android:layout_marginTop="@dimen/_8sdp"
+		android:layout_marginBottom="@dimen/_8sdp"
+		android:orientation="horizontal">
+
+		<de.hdodenhof.circleimageview.CircleImageView
+			android:layout_marginStart="@dimen/_8sdp"
+			android:layout_width="@dimen/_30sdp"
+			android:layout_height="@dimen/_30sdp"
+			app:civ_circle_background_color="#D8D7D7"
+			app:srcCompat="@drawable/ic_user_white"
+			android:id="@+id/userImageIV" />
+
+		<RelativeLayout
+			android:layout_width="0dp"
+			android:layout_height="wrap_content"
+			android:layout_weight="1"
+			android:layout_gravity="center">
+			<ImageView
+				android:layout_width="@dimen/_65sdp"
+				android:layout_height="@dimen/_22sdp"
+				app:srcCompat="@drawable/ssn_logo"
+				android:tint="@color/colorAccent" />
+		</RelativeLayout>
+
+		<RelativeLayout
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_marginEnd="@dimen/_5sdp">
+			<ImageView
+				android:layout_width="@dimen/_30sdp"
+				android:layout_height="@dimen/_30sdp"
+				android:paddingStart="@dimen/_5sdp"
+				android:paddingEnd="@dimen/_5sdp"
+				android:paddingTop="@dimen/_5sdp"
+				android:paddingBottom="@dimen/_3sdp"
+				android:tint="@color/colorAccent"
+				app:srcCompat="@drawable/ic_chat"
+				android:id="@+id/chatIV" />
+
+			<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:textSize="@dimen/_6sdp"
+				android:id="@+id/newMessageCountTV"
+				android:visibility="gone"
+				android:elevation="1dp"
+				android:layout_marginStart="@dimen/_18sdp"
+				android:textColor="@android:color/white"
+				android:paddingStart="@dimen/_4sdp"
+				android:paddingTop="@dimen/_2sdp"
+				android:paddingBottom="@dimen/_2sdp"
+				android:paddingEnd="@dimen/_4sdp"
+				android:textStyle="bold"
+				android:background="@drawable/chat_count_bg"
+				android:text="23"/>
+
+
+		</RelativeLayout>
+
+		<ImageView
+			android:layout_width="@dimen/_30sdp"
+			android:layout_height="@dimen/_30sdp"
+			android:padding="@dimen/_5sdp"
+			android:layout_marginEnd="@dimen/_5sdp"
+			android:tint="@color/colorAccent"
+			app:srcCompat="@drawable/ic_fav"
+			android:id="@+id/favIV" />
+
+		<ImageView
+			android:layout_width="@dimen/_30sdp"
+			android:layout_height="@dimen/_30sdp"
+			android:layout_marginEnd="@dimen/_5sdp"
+			android:padding="@dimen/_5sdp"
+			android:tint="@color/colorAccent"
+			app:srcCompat="@drawable/ic_settings"
+			android:id="@+id/settingsIV" />
+
+	</LinearLayout>
+
+	<RelativeLayout
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_below="@id/fakeAppbarLL"
+		android:background="#FAFFFFFF">
+
+		<com.ogaclejapan.smarttablayout.SmartTabLayout
+			android:id="@+id/viewPagerTab"
+			android:paddingStart="@dimen/_14sdp"
+			android:paddingEnd="@dimen/_14sdp"
+			android:clipToPadding="false"
+			android:layout_width="wrap_content"
+			android:layout_height="@dimen/_35sdp"
+			android:layout_marginBottom="10dp"
+			android:layout_gravity="bottom|center_horizontal"
+			app:stl_clickable="true"
+			app:stl_dividerColor="@android:color/transparent"
+			app:stl_dividerThickness="0dp"
+			app:stl_indicatorColor="@color/colorAccent"
+			app:stl_indicatorCornerRadius="@dimen/_18sdp"
+			app:stl_indicatorGravity="center"
+			app:stl_indicatorInterpolation="linear"
+			app:stl_indicatorThickness="@dimen/_28sdp"
+			app:stl_underlineColor="@android:color/transparent"
+			app:stl_underlineThickness="0dp"
+			app:stl_customTabTextLayoutId="@layout/custom_tab"
+			app:stl_customTabTextViewId="@+id/customTabTV" />
+
+		<androidx.viewpager.widget.ViewPager
+			android:id="@+id/viewPager"
+			android:layout_width="match_parent"
+			android:layout_height="match_parent"
+			android:layout_below="@+id/viewPagerTab" />
+	</RelativeLayout>
+
+</RelativeLayout>
