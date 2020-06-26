@@ -44,6 +44,10 @@ public class BusTrackingAdapter extends BaseAdapter {
         routesList.remove(getIndexOfRoute(routeNo));
     }
 
+    public String getRoute(int index) {
+        if (index >= routesList.size() || index < 0) return null;
+        else return routesList.get(index).left;
+    }
     public void addRouteNo(String routeNo, boolean isSharingLoc) {
         for (Pair<String, Boolean> s : routesList)
             if (s.getLeft().equals(routeNo)) return;

@@ -99,7 +99,10 @@ public class BusTrackingVolunteersFragment extends Fragment {
             }
         });
 
-        syncSharedPrefsWithRealtimeDB();
+        if (SharedPref.getBoolean(getContext(), "stopbutton"))
+            disableControls();
+        else
+            enableControls();
 
         cmdStopVolunteering.setOnClickListener(v -> YesNoDialogBuilder.createDialog(
                 getContext(),
@@ -156,39 +159,6 @@ public class BusTrackingVolunteersFragment extends Fragment {
             cmdStopVolunteering.setTextColor(getContext().getResources().getColor(R.color.colorAccent));
             etRouteNo.setTextColor(Color.WHITE);
         }
-    }
-
-    private void syncSharedPrefsWithRealtimeDB() {
-        String routeStr = SharedPref.getString(getContext(), "routeno");
-        if (routeStr == null || routeStr.isEmpty()) {
-            enableControls();
-            SharedPref.putBoolean(BusTrackingVolunteersFragment.this.getContext(), "stopbutton", false);
-            return;
-        }
-
-        busLocRef.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                if (!dataSnapshot.child(routeStr).exists()) {
-                    enableControls();
-                    SharedPref.putBoolean(BusTrackingVolunteersFragment.this.getContext(), "stopbutton", false);
-                    SharedPref.putString(getContext(), "routeno", "");
-                }
-                else if (SharedPref.getBoolean(BusTrackingVolunteersFragment.this.getContext(), "stopbutton")) {
-                    String s = dataSnapshot.child("currentSharerID").getValue(String.class);
-                    if (s == null || s.equals(SharedPref.getString(getContext(), "email"))) {
-                        enableControls();
-                        busLocRef.child(routeStr).removeValue();
-                    }
-                }
-                else disableControls();
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-
-            }
-        });
     }
 
     private boolean routeExists(String route) {

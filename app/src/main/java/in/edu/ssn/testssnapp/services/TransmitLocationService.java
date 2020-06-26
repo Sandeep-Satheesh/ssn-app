@@ -35,7 +35,7 @@ import in.edu.ssn.testssnapp.utils.SharedPref;
 public class TransmitLocationService extends Service implements LocationListener {
     DatabaseReference busLocDBRef;
     LocationManager locationManager;
-    int SSNCEPolygon[]; //TODO: The polygon within which we have to check to stop service automatically; check note at end.
+    double SSNCEPolygon[]; //TODO: The polygon within which we have to check to stop service automatically; check note at end.
     public static final String ACTION_START_FOREGROUND_SERVICE = "ACTION_START_FOREGROUND_SERVICE";
     public static final String ACTION_STOP_FOREGROUND_SERVICE = "ACTION_STOP_FOREGROUND_SERVICE";
     String routeNo, latLongString, userID;

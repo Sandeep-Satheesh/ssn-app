@@ -35,7 +35,9 @@ import org.apache.commons.collections4.BidiMap;
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 
 import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Set;
 
 import in.edu.ssn.testssnapp.R;
@@ -66,12 +68,13 @@ public class BusTrackingMapsFragment extends Fragment implements GoogleMap.OnMar
                              @Nullable Bundle savedInstanceState) {
         darkModeEnabled = SharedPref.getBoolean(getContext(), "dark_mode");
         if (darkModeEnabled) {
-            view = inflater.inflate(R.layout.fragment_bustracking_map_dark, container,false);
+            view = inflater.inflate(R.layout.fragment_bustracking_map_dark, container, false);
         } else {
-            view = inflater.inflate(R.layout.fragment_bustracking_map, container,false);
+            view = inflater.inflate(R.layout.fragment_bustracking_map, container, false);
         }
         return view;
     }
+
     private void initMap(Bundle b) {
         busTrackingMap = view.findViewById(R.id.mapView_bustracking);
         Bundle mapViewBundle = null;
@@ -99,7 +102,8 @@ public class BusTrackingMapsFragment extends Fragment implements GoogleMap.OnMar
         super.onResume();
         busTrackingMap.onResume();
         busTrackingAdapter.notifyDataSetChanged();
-        if (busVolunteersBidiMap.get(currentlySelectedBus) != null) googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(busVolunteersBidiMap.get(currentlySelectedBus).getLocation(), googleMap.getCameraPosition().zoom));
+        if (busVolunteersBidiMap.get(currentlySelectedBus) != null)
+            googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(busVolunteersBidiMap.get(currentlySelectedBus).getLocation(), googleMap.getCameraPosition().zoom));
     }
 
     @Override
@@ -131,6 +135,7 @@ public class BusTrackingMapsFragment extends Fragment implements GoogleMap.OnMar
         initUI(view);
         initMap(savedInstanceState);
     }
+
     private void initUI(View view) {
         tvVolunteerDetails = view.findViewById(R.id.tv_volunteerid);
         spnSelectBus = view.findViewById(R.id.spn_selectbus);
@@ -147,7 +152,7 @@ public class BusTrackingMapsFragment extends Fragment implements GoogleMap.OnMar
                 if (busObj != null) {
                     googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(busVolunteersBidiMap.get(currentlySelectedBus).getLocation(), googleMap.getCameraPosition().zoom));
                     if (busObj.getCurrentVolunteerId() != null && !busObj.getCurrentVolunteerId().equals("null"))
-                        tvVolunteerDetails.setText("Current Volunteer" + (busObj.getCurrentVolunteerId().equals(SharedPref.getString(getContext(), "email")) ? ": You" : " ID: " + busObj.getCurrentVolunteerId()));
+                        tvVolunteerDetails.setText("Current Volunteer" + (busObj.getCurrentVolunteerId().equals(SharedPref.getString(getContext(), "email")) ? ": You" : " ID: " + busObj.getCurrentVolunteerId() + "  "));
                     else tvVolunteerDetails.setText("");
                 }
             }
@@ -214,18 +219,34 @@ public class BusTrackingMapsFragment extends Fragment implements GoogleMap.OnMar
 
                 }
                 if (dataSnapshot.getChildrenCount() < busVolunteersBidiMap.size() && !busVolunteersBidiMap.isEmpty()) {
-                    Set<String> routeSet = busVolunteersBidiMap.keySet();
-                    for (String s : routeSet) {
+                    Iterator<String> i = busVolunteersBidiMap.keySet().iterator();
+                    while (i.hasNext()) {
+                        String s = i.next();
                         if (!dataSnapshot.child(s).exists()) {
                             busVolunteersBidiMap.get(s).getBusMarker().remove();
-                            busVolunteersBidiMap.remove(s);
+                            i.remove();
                             busTrackingAdapter.removeRouteNo(s);
-                            tvVolunteerDetails.setText("");
+                            if (s.equals(currentlySelectedBus))
+                                if (busTrackingAdapter.getCount() > 0) {
+                                    if (i.hasNext()) {
+                                        currentlySelectedBus = i.next();
+                                        spnSelectBus.setSelection(busTrackingAdapter.getIndexOfRoute(currentlySelectedBus), true);
+                                    }
+                                    else {
+                                        spnSelectBus.setSelection(busTrackingAdapter.getCount() - 1);
+                                        currentlySelectedBus = busTrackingAdapter.getRoute(busTrackingAdapter.getCount() - 1);
+                                    }
+                                    googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(busVolunteersBidiMap.get(currentlySelectedBus).getLocation(), googleMap.getCameraPosition().zoom));
+                                    String newSharerId = busVolunteersBidiMap.get(currentlySelectedBus).getCurrentVolunteerId();
+                                    tvVolunteerDetails.setText("Current Volunteer" + (newSharerId.equals(SharedPref.getString(getActivity().getApplicationContext(), "email")) ? ": You" : " ID: " + newSharerId + "     "));
+                                }
                         }
                     }
                 }
                 busTrackingAdapter.notifyDataSetChanged();
+                spnSelectBus.setSelection(busTrackingAdapter.getIndexOfRoute(currentlySelectedBus));
             }
+
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
 
@@ -247,7 +268,7 @@ public class BusTrackingMapsFragment extends Fragment implements GoogleMap.OnMar
                 if (currentlySelectedBus == null) currentlySelectedBus = r;
                 else if (newSharerId == null) return;
                 if (r.equals(currentlySelectedBus) && !newSharerId.equals("null"))
-                    tvVolunteerDetails.setText("Current Volunteer" + (newSharerId.equals(SharedPref.getString(getActivity().getApplicationContext(), "email")) ? ": You" : " ID: " + newSharerId));
+                    tvVolunteerDetails.setText("Current Volunteer" + (newSharerId.equals(SharedPref.getString(getActivity().getApplicationContext(), "email")) ? ": You" : " ID: " + newSharerId + "     "));
             }
 
             @Override
@@ -258,6 +279,7 @@ public class BusTrackingMapsFragment extends Fragment implements GoogleMap.OnMar
             public void onOnlineStatusChanged(String r, boolean isOnline) {
                 busTrackingAdapter.setOnlineStatus(r, isOnline);
                 busTrackingAdapter.notifyDataSetChanged();
+                spnSelectBus.setSelection(busTrackingAdapter.getIndexOfRoute(currentlySelectedBus));
             }
 
             @Override
@@ -271,6 +293,7 @@ public class BusTrackingMapsFragment extends Fragment implements GoogleMap.OnMar
     }
 
     private BitmapDescriptor getBitmapDescriptor(int id) {
+        if (getContext() == null) return null;
         Drawable vectorDrawable = getResources().getDrawable(id);
         int h = vectorDrawable.getIntrinsicHeight();
         int w = vectorDrawable.getIntrinsicWidth();
@@ -289,6 +312,7 @@ public class BusTrackingMapsFragment extends Fragment implements GoogleMap.OnMar
             spnSelectBus.setSelection(busTrackingAdapter.getIndexOfRoute(busVolunteersBidiMap.getKey(object)));
         return false;
     }
+
     public BusObject getBusObjectFromMarker(Marker marker) {
         for (BusObject object : busVolunteersBidiMap.values()) {
             if (object.getBusMarker().equals(marker))
