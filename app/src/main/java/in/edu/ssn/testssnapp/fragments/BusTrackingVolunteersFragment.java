@@ -10,11 +10,6 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,6 +17,10 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
 
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
@@ -40,8 +39,8 @@ import com.google.firebase.database.ValueEventListener;
 
 import org.apache.commons.lang3.StringUtils;
 
-import in.edu.ssn.testssnapp.services.TransmitLocationService;
 import in.edu.ssn.testssnapp.R;
+import in.edu.ssn.testssnapp.services.TransmitLocationService;
 import in.edu.ssn.testssnapp.utils.CommonUtils;
 import in.edu.ssn.testssnapp.utils.Constants;
 import in.edu.ssn.testssnapp.utils.SharedPref;
@@ -112,7 +111,7 @@ public class BusTrackingVolunteersFragment extends Fragment {
                 else if (b != null && b) {
                     Toast.makeText(getContext(), "Cannot start location sharing! There's already another volunteer sharing location for this bus!", Toast.LENGTH_LONG).show();
                     stopLocationTransmission();
-                }
+                } else busLocRef.child(routeNo).child("currentSharerID").setValue(userId);
             }
 
             @Override
@@ -255,7 +254,6 @@ public class BusTrackingVolunteersFragment extends Fragment {
                     case LocationSettingsStatusCodes.SUCCESS:
                         //Log.i(TAG "All location settings are satisfied.");
                         startLocationTransmission();
-                        busLocRef.child(routeNo).child("currentSharerID").setValue(userId);
                         break;
                     case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
                         //Log.i(TAG, "Location settings are not satisfied. Show the user a dialog to upgrade location settings");
@@ -281,10 +279,8 @@ public class BusTrackingVolunteersFragment extends Fragment {
         if (requestCode == 1)
             if (resultCode != Activity.RESULT_OK)
                 Toast.makeText(getContext(), "Unable to get your location! Cannot start location transmission!", Toast.LENGTH_LONG).show();
-            else {
-                startLocationTransmission();
-                busLocRef.child("currentSharerID").setValue(userId);
-            }
+
+            else startLocationTransmission();
     }
 
     private void stopLocationTransmission() {
