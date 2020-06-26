@@ -202,10 +202,9 @@ public class BusTrackingMapsFragment extends Fragment implements GoogleMap.OnMar
                         BusObject object = busVolunteersBidiMap.get(routeNo);
                         object.setLocation(currentlatLongs);
                         object.setSpeed(speed);
+                        object.setCurrentVolunteerId(sharerId);
                         object.setSharerOnline(isSharingLoc);
-
-                        if (!sharerId.equals(object.getCurrentVolunteerId()))
-                            busTrackingAdapter.setOnlineStatus(routeNo, isSharingLoc);
+                        busTrackingAdapter.setOnlineStatus(routeNo, isSharingLoc);
 
                         busVolunteersBidiMap.put(routeNo, object);
                         if (object.getRouteNo().equals(currentlySelectedBus))
