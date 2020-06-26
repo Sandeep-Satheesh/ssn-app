@@ -1,10 +1,5 @@
 package in.edu.ssn.testssnapp.fragments;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.widget.AppCompatSpinner;
-import androidx.fragment.app.Fragment;
-
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
@@ -14,6 +9,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.widget.AppCompatSpinner;
+import androidx.fragment.app.Fragment;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -34,19 +34,13 @@ import com.google.firebase.database.ValueEventListener;
 import org.apache.commons.collections4.BidiMap;
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 
-import java.util.ArrayList;
-import java.util.ConcurrentModificationException;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Set;
 
 import in.edu.ssn.testssnapp.R;
 import in.edu.ssn.testssnapp.adapters.BusTrackingAdapter;
 import in.edu.ssn.testssnapp.models.BusObject;
 import in.edu.ssn.testssnapp.utils.Constants;
 import in.edu.ssn.testssnapp.utils.SharedPref;
-
-import static java.lang.Character.isDigit;
 
 public class BusTrackingMapsFragment extends Fragment implements GoogleMap.OnMarkerClickListener, OnMapReadyCallback {
     boolean darkModeEnabled;
@@ -204,7 +198,7 @@ public class BusTrackingMapsFragment extends Fragment implements GoogleMap.OnMar
                     if (!busVolunteersBidiMap.containsKey(routeNo))
                         addNewBusMarker(routeNo, sharerId, currentlatLongs, speed, isSharingLoc);
 
-                    else if (!sharerId.equals("null")) {
+                    else if (sharerId != null && !sharerId.equals("null")) {
                         BusObject object = busVolunteersBidiMap.get(routeNo);
                         object.setLocation(currentlatLongs);
                         object.setSpeed(speed);

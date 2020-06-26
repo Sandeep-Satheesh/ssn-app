@@ -111,7 +111,7 @@ public class BusTrackingVolunteersFragment extends Fragment {
                 else if (b != null && b) {
                     Toast.makeText(getContext(), "Cannot start location sharing! There's already another volunteer sharing location for this bus!", Toast.LENGTH_LONG).show();
                     stopLocationTransmission();
-                } else busLocRef.child(routeNo).child("currentSharerID").setValue(userId);
+                }
             }
 
             @Override
@@ -139,13 +139,26 @@ public class BusTrackingVolunteersFragment extends Fragment {
                 etRouteNo.setError("Invalid route number! Cannot start location sharing!");
                 return;
             }
-
             routeNoString = routeNoString.trim().toUpperCase();
             if (routeNoString.charAt(routeNoString.length() - 1) == 'A')
                 routeNoString = Integer.parseInt(routeNoString.substring(0, routeNoString.length() - 1)) + "A";
 
             BusTrackingVolunteersFragment.this.routeNo = routeNoString;
-            if (!isSharingLoc) checkForLocationPermissionsAndAvailability();
+            busLocRef.child(routeNoString).addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                    String s = dataSnapshot.child("currentSharerID").getValue(String.class);
+                    if (s != null && !s.equals("null") && !s.equals(userId)) {
+                        Toast.makeText(getContext(), "Location input rejected! There's already another volunteer sharing location for this bus!", Toast.LENGTH_LONG).show();
+                        stopLocationTransmission();
+                    } else checkForLocationPermissionsAndAvailability();
+                }
+
+                @Override
+                public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                }
+            });
         });
 
         if (darkMode) {
