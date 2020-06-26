@@ -12,7 +12,6 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
 
 import android.view.LayoutInflater;
@@ -76,11 +75,28 @@ public class BusTrackingVolunteersFragment extends Fragment {
         userId = SharedPref.getString(getContext(), "email");
         busLocRef = FirebaseDatabase.getInstance().getReference("Bus Locations");
         etRouteNo.setShowSoftInputOnFocus(true);
+
         etRouteNo.setOnClickListener(v -> {
             if (!etRouteNo.isEnabled()) return;
             etRouteNo.requestFocus();
             InputMethodManager imm = (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
             imm.showSoftInput(etRouteNo, InputMethodManager.SHOW_IMPLICIT);
+        });
+
+        busLocRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                String s = dataSnapshot.child("currentSharerID").getValue(String.class);
+                Boolean b = dataSnapshot.child("sharingLoc").getValue(Boolean.class);
+
+                if (s != null && routeNo != null && !routeNo.isEmpty() && !s.equals("null") && !s.equals(userId))
+                    stopLocationTransmission();
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
         });
 
         syncSharedPrefsWithRealtimeDB();
@@ -96,12 +112,7 @@ public class BusTrackingVolunteersFragment extends Fragment {
                     SharedPref.putString(getContext(), "routeno", "");
                     routeNo = etRouteNo.getText().toString();
 
-                    Intent i = new Intent(getContext(), TransmitLocationService.class);
-                    i.setAction(TransmitLocationService.ACTION_STOP_FOREGROUND_SERVICE);
-                    i.putExtra("routeNo", routeNo);
-                    i.putExtra("userID", userId);
-                    getActivity().startService(i);
-                    enableControls();
+                    stopLocationTransmission();
                 },
                 (dialog, which) -> dialog.dismiss()).show());
         cmdStartVolunteering.setOnClickListener(v -> {
@@ -219,7 +230,7 @@ public class BusTrackingVolunteersFragment extends Fragment {
 
     }
 
-    private void initializeLocationTransmission() {
+    private void startLocationTransmission() {
         SharedPref.putBoolean(getContext(), "stopbutton", true);
         SharedPref.putString(getContext(), "routeno", routeNo);
         Intent i = new Intent(getContext(), TransmitLocationService.class);
@@ -275,7 +286,7 @@ public class BusTrackingVolunteersFragment extends Fragment {
                 switch (status.getStatusCode()) {
                     case LocationSettingsStatusCodes.SUCCESS:
                         //Log.i(TAG "All location settings are satisfied.");
-                        initializeLocationTransmission();
+                        startLocationTransmission();
                         break;
                     case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
                         //Log.i(TAG, "Location settings are not satisfied. Show the user a dialog to upgrade location settings");
@@ -301,6 +312,15 @@ public class BusTrackingVolunteersFragment extends Fragment {
         if (requestCode == 1)
             if (resultCode != Activity.RESULT_OK)
                 Toast.makeText(getContext(), "Unable to get your location! Cannot start location transmission!", Toast.LENGTH_LONG).show();
-            else initializeLocationTransmission();
+            else startLocationTransmission();
+    }
+
+    private void stopLocationTransmission() {
+        Intent i = new Intent(getContext(), TransmitLocationService.class);
+        i.setAction(TransmitLocationService.ACTION_STOP_FOREGROUND_SERVICE);
+        i.putExtra("routeNo", routeNo);
+        i.putExtra("userID", userId);
+        getActivity().startService(i);
+        enableControls();
     }
 }

@@ -52,23 +52,6 @@ public class TransmitLocationService extends Service implements LocationListener
         userID = SharedPref.getString(getApplicationContext(),"email");
         busLocDBRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo).getRef();
 
-        busLocDBRef.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                String s = dataSnapshot.child("currentSharerID").getValue(String.class);
-                if (s == null || (!s.equals("null") && !s.equals(userID))) {
-                    locationManager.removeUpdates(TransmitLocationService.this);
-                    stopForeground(true);
-                    stopSelf();
-                }
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-
-            }
-        });
-
         switch (intent.getAction()) {
             case ACTION_START_FOREGROUND_SERVICE:
                 busLocDBRef.child("currentSharerID").setValue(userID);
