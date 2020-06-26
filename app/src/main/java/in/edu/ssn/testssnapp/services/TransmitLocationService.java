@@ -77,7 +77,6 @@ public class TransmitLocationService extends Service implements LocationListener
 
                 break;
             case ACTION_STOP_FOREGROUND_SERVICE:
-                busLocDBRef.removeValue();
                 locationManager.removeUpdates(this);
                 stopForeground(true);
                 stopSelf();
@@ -155,7 +154,6 @@ public class TransmitLocationService extends Service implements LocationListener
                 busLocDBRef.child("currentSharerID").setValue("null");
             }
             else {
-                busLocDBRef.removeValue();
                 stopForeground(true);
                 stopSelf();
             }

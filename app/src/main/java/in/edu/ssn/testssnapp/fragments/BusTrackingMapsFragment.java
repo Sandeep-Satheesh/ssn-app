@@ -160,6 +160,7 @@ public class BusTrackingMapsFragment extends Fragment implements GoogleMap.OnMar
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
                 googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(SSNCEPoint, 18f));
+                tvVolunteerDetails.setText("");
             }
         });
 
@@ -231,8 +232,7 @@ public class BusTrackingMapsFragment extends Fragment implements GoogleMap.OnMar
                                     if (i.hasNext()) {
                                         currentlySelectedBus = i.next();
                                         spnSelectBus.setSelection(busTrackingAdapter.getIndexOfRoute(currentlySelectedBus), true);
-                                    }
-                                    else {
+                                    } else {
                                         spnSelectBus.setSelection(busTrackingAdapter.getCount() - 1);
                                         currentlySelectedBus = busTrackingAdapter.getRoute(busTrackingAdapter.getCount() - 1);
                                     }

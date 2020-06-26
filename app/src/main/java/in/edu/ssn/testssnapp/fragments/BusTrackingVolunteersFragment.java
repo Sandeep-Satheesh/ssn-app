@@ -2,6 +2,7 @@ package in.edu.ssn.testssnapp.fragments;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
@@ -54,7 +55,6 @@ public class BusTrackingVolunteersFragment extends Fragment {
     String routeNo, userId;
     DatabaseReference busLocRef;
     boolean darkMode;
-    boolean volunteers;
     volatile boolean isSharingLoc = false;
 
     @Override
@@ -67,7 +67,15 @@ public class BusTrackingVolunteersFragment extends Fragment {
         initUI(view);
         return view;
     }
-
+    private boolean isMyServiceRunning(Class<?> serviceClass) {
+        ActivityManager manager = (ActivityManager) getContext().getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (serviceClass.getName().equals(service.service.getClassName())) {
+                return true;
+            }
+        }
+        return false;
+    }
     void initUI(View view) {
         cmdStopVolunteering = view.findViewById(R.id.stop);
         cmdStartVolunteering = view.findViewById(R.id.start);
@@ -83,24 +91,9 @@ public class BusTrackingVolunteersFragment extends Fragment {
             imm.showSoftInput(etRouteNo, InputMethodManager.SHOW_IMPLICIT);
         });
 
-        busLocRef.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                String s = dataSnapshot.child("currentSharerID").getValue(String.class);
-                Boolean b = dataSnapshot.child("sharingLoc").getValue(Boolean.class);
-
-                if (s != null && routeNo != null && !routeNo.isEmpty() && !s.equals("null") && !s.equals(userId))
-                    stopLocationTransmission();
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-
-            }
-        });
-
         if (SharedPref.getBoolean(getContext(), "stopbutton"))
-            disableControls();
+            if (isMyServiceRunning(TransmitLocationService.class)) disableControls();
+            else Toast.makeText(getContext(), "Looks like the application crashed last time. Please hit the 'Stop Volunteering' button to sync yourself with the database!", Toast.LENGTH_LONG).show();
         else
             enableControls();
 
@@ -114,8 +107,8 @@ public class BusTrackingVolunteersFragment extends Fragment {
                     SharedPref.putBoolean(getContext(), "stopbutton", false);
                     SharedPref.putString(getContext(), "routeno", "");
                     routeNo = etRouteNo.getText().toString();
-
                     stopLocationTransmission();
+                    busLocRef.child(routeNo).removeValue();
                 },
                 (dialog, which) -> dialog.dismiss()).show());
         cmdStartVolunteering.setOnClickListener(v -> {
@@ -131,17 +124,20 @@ public class BusTrackingVolunteersFragment extends Fragment {
 
             BusTrackingVolunteersFragment.this.routeNo = routeNoString;
 
-            busLocRef.child(routeNoString).addListenerForSingleValueEvent(new ValueEventListener() {
+            busLocRef.child(routeNoString).addValueEventListener(new ValueEventListener() {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                     String s = dataSnapshot.child("currentSharerID").getValue(String.class);
                     Boolean b = dataSnapshot.child("sharingLoc").getValue(Boolean.class);
-                    if ((s != null && !s.equals("null")) && (b != null && b))
+                    if (isSharingLoc) {
+                        if (s != null && !s.equals("null") && !s.equals(userId)) {
+                            Toast.makeText(getContext(), "Location input rejected! There's already another volunteer sharing location for this bus!", Toast.LENGTH_LONG).show();
+                            stopLocationTransmission();
+                        }
+                    }
+                    else if (b != null && b) {
                         Toast.makeText(getContext(), "Cannot start location sharing! There's already another volunteer sharing location for this bus!", Toast.LENGTH_LONG).show();
-                    else {
-                        SharedPref.putString(BusTrackingVolunteersFragment.this.getContext(), "routeno", BusTrackingVolunteersFragment.this.routeNo);
-                        SharedPref.putBoolean(getContext(), "stopbutton", true);
-                        checkForLocationPermissionsAndAvailability();
+                        if (isMyServiceRunning(TransmitLocationService.class)) stopLocationTransmission();
                     }
                 }
 
@@ -150,6 +146,7 @@ public class BusTrackingVolunteersFragment extends Fragment {
 
                 }
             });
+            if (!isSharingLoc) checkForLocationPermissionsAndAvailability();
         });
 
         if (darkMode) {
@@ -292,5 +289,6 @@ public class BusTrackingVolunteersFragment extends Fragment {
         i.putExtra("userID", userId);
         getActivity().startService(i);
         enableControls();
+        isSharingLoc = false;
     }
 }
