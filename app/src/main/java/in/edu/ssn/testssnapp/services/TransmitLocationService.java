@@ -54,8 +54,6 @@ public class TransmitLocationService extends Service implements LocationListener
 
         switch (intent.getAction()) {
             case ACTION_START_FOREGROUND_SERVICE:
-                busLocDBRef.child("currentSharerID").setValue(userID);
-                busLocDBRef.child("sharingLoc").setValue(true);
                 try {
                     if (locationManager != null) {
                         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 20, this);
@@ -65,6 +63,7 @@ public class TransmitLocationService extends Service implements LocationListener
                             busLocDBRef.child("latLong").setValue(latLongString);
                             speed =(int) l.getSpeed();
                             busLocDBRef.child("speed").setValue(speed);
+                            busLocDBRef.child("sharingLoc").setValue(true);
                         }
                     }
                 } catch (SecurityException e) {
@@ -123,14 +122,11 @@ public class TransmitLocationService extends Service implements LocationListener
 
     @Override
     public void onLocationChanged(Location location) {
-        busLocDBRef.child("currentSharerID").setValue(userID);
-        busLocDBRef.child("sharingLoc").setValue(true);
         latLongString = location.getLatitude()+","+location.getLongitude();
         busLocDBRef.child("latLong").setValue(latLongString);
         speed =(int) location.getSpeed();
         busLocDBRef.child("speed").setValue(speed);
         busLocDBRef.child("sharingLoc").setValue(true);
-
         //TODO: auto-stop near clg
     }
 
@@ -138,8 +134,6 @@ public class TransmitLocationService extends Service implements LocationListener
     public void onStatusChanged(String provider, int status, Bundle extras) {
         try {
             if (status == LocationProvider.AVAILABLE) {
-                busLocDBRef.child("currentSharerID").setValue(userID);
-                busLocDBRef.child("sharingLoc").setValue(true);
                 Location location = locationManager.getLastKnownLocation(provider);
                 if (location != null) {
                     latLongString = location.getLatitude()+","+location.getLongitude();
@@ -147,6 +141,7 @@ public class TransmitLocationService extends Service implements LocationListener
                     speed =(int) location.getSpeed();
                     busLocDBRef.child("speed").setValue(speed);
                     busLocDBRef.child("sharingLoc").setValue(true);
+                    busLocDBRef.child("currentSharerID").setValue(userID);
                 }
             } else if (status == LocationProvider.TEMPORARILY_UNAVAILABLE) {
                 busLocDBRef.child("sharingLoc").setValue(false);
@@ -165,8 +160,6 @@ public class TransmitLocationService extends Service implements LocationListener
 
     @Override
     public void onProviderEnabled(String provider) {
-        busLocDBRef.child("currentSharerID").setValue(userID);
-        busLocDBRef.child("sharingLoc").setValue(true);
         try {
             Location location = locationManager.getLastKnownLocation(provider);
             if (location != null) {
@@ -174,6 +167,8 @@ public class TransmitLocationService extends Service implements LocationListener
                 busLocDBRef.child("latLong").setValue(latLongString);
                 speed = (int) location.getSpeed();
                 busLocDBRef.child("speed").setValue(speed);
+                busLocDBRef.child("currentSharerID").setValue(userID);
+                busLocDBRef.child("sharingLoc").setValue(true);
             }
         } catch (SecurityException e) {
             e.printStackTrace();

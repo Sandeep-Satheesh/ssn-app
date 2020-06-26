@@ -56,6 +56,7 @@ public class BusTrackingVolunteersFragment extends Fragment {
     DatabaseReference busLocRef;
     boolean darkMode;
     volatile boolean isSharingLoc = false;
+    private ValueEventListener concurrentVolunteerListener;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -97,6 +98,28 @@ public class BusTrackingVolunteersFragment extends Fragment {
         else
             enableControls();
 
+        concurrentVolunteerListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                String s = dataSnapshot.child("currentSharerID").getValue(String.class);
+                Boolean b = dataSnapshot.child("sharingLoc").getValue(Boolean.class);
+                if (isSharingLoc) {
+                    if (s != null && !s.equals("null") && !s.equals(userId)) {
+                        Toast.makeText(getContext(), "Location input rejected! There's already another volunteer sharing location for this bus!", Toast.LENGTH_LONG).show();
+                        stopLocationTransmission();
+                    }
+                }
+                else if (b != null && b) {
+                    Toast.makeText(getContext(), "Cannot start location sharing! There's already another volunteer sharing location for this bus!", Toast.LENGTH_LONG).show();
+                    stopLocationTransmission();
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        };
         cmdStopVolunteering.setOnClickListener(v -> YesNoDialogBuilder.createDialog(
                 getContext(),
                 darkMode,
@@ -123,29 +146,6 @@ public class BusTrackingVolunteersFragment extends Fragment {
                 routeNoString = Integer.parseInt(routeNoString.substring(0, routeNoString.length() - 1)) + "A";
 
             BusTrackingVolunteersFragment.this.routeNo = routeNoString;
-
-            busLocRef.child(routeNoString).addValueEventListener(new ValueEventListener() {
-                @Override
-                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                    String s = dataSnapshot.child("currentSharerID").getValue(String.class);
-                    Boolean b = dataSnapshot.child("sharingLoc").getValue(Boolean.class);
-                    if (isSharingLoc) {
-                        if (s != null && !s.equals("null") && !s.equals(userId)) {
-                            Toast.makeText(getContext(), "Location input rejected! There's already another volunteer sharing location for this bus!", Toast.LENGTH_LONG).show();
-                            stopLocationTransmission();
-                        }
-                    }
-                    else if (b != null && b) {
-                        Toast.makeText(getContext(), "Cannot start location sharing! There's already another volunteer sharing location for this bus!", Toast.LENGTH_LONG).show();
-                        if (isMyServiceRunning(TransmitLocationService.class)) stopLocationTransmission();
-                    }
-                }
-
-                @Override
-                public void onCancelled(@NonNull DatabaseError databaseError) {
-
-                }
-            });
             if (!isSharingLoc) checkForLocationPermissionsAndAvailability();
         });
 
@@ -200,6 +200,7 @@ public class BusTrackingVolunteersFragment extends Fragment {
     private void startLocationTransmission() {
         SharedPref.putBoolean(getContext(), "stopbutton", true);
         SharedPref.putString(getContext(), "routeno", routeNo);
+        busLocRef.child(routeNo).addValueEventListener(concurrentVolunteerListener);
         Intent i = new Intent(getContext(), TransmitLocationService.class);
         i.setAction(TransmitLocationService.ACTION_START_FOREGROUND_SERVICE);
         i.putExtra("routeNo", routeNo);
@@ -254,6 +255,7 @@ public class BusTrackingVolunteersFragment extends Fragment {
                     case LocationSettingsStatusCodes.SUCCESS:
                         //Log.i(TAG "All location settings are satisfied.");
                         startLocationTransmission();
+                        busLocRef.child(routeNo).child("currentSharerID").setValue(userId);
                         break;
                     case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
                         //Log.i(TAG, "Location settings are not satisfied. Show the user a dialog to upgrade location settings");
@@ -279,16 +281,22 @@ public class BusTrackingVolunteersFragment extends Fragment {
         if (requestCode == 1)
             if (resultCode != Activity.RESULT_OK)
                 Toast.makeText(getContext(), "Unable to get your location! Cannot start location transmission!", Toast.LENGTH_LONG).show();
-            else startLocationTransmission();
+            else {
+                startLocationTransmission();
+                busLocRef.child("currentSharerID").setValue(userId);
+            }
     }
 
     private void stopLocationTransmission() {
+        busLocRef.child(routeNo).removeEventListener(concurrentVolunteerListener);
         Intent i = new Intent(getContext(), TransmitLocationService.class);
         i.setAction(TransmitLocationService.ACTION_STOP_FOREGROUND_SERVICE);
         i.putExtra("routeNo", routeNo);
         i.putExtra("userID", userId);
         getActivity().startService(i);
         enableControls();
+        SharedPref.putString(getContext(), "routeno", "");
+        SharedPref.putBoolean(getContext(), "stopbutton", false);
         isSharingLoc = false;
     }
 }
