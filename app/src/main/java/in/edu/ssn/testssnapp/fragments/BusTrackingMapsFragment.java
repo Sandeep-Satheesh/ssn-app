@@ -146,7 +146,7 @@ public class BusTrackingMapsFragment extends Fragment implements GoogleMap.OnMar
                 if (busObj != null) {
                     googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(busVolunteersBidiMap.get(currentlySelectedBus).getLocation(), googleMap.getCameraPosition().zoom));
                     if (busObj.getCurrentVolunteerId() != null && !busObj.getCurrentVolunteerId().equals("null"))
-                        tvVolunteerDetails.setText("Current Volunteer" + (busObj.getCurrentVolunteerId().equals(SharedPref.getString(getContext(), "email")) ? ": You" : " ID: " + busObj.getCurrentVolunteerId() + "  "));
+                        tvVolunteerDetails.setText("Current Volunteer" + (busObj.getCurrentVolunteerId().equals(SharedPref.getString(getContext(), "email")) ? ": You" : " ID: " + busObj.getCurrentVolunteerId() + "    "));
                     else tvVolunteerDetails.setText("");
                 }
             }
