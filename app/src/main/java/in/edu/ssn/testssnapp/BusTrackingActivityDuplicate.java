@@ -44,6 +44,7 @@ public class BusTrackingActivityDuplicate extends BaseActivity implements Google
     ProgressDialog pd;
     boolean isMapLoaded = false;
     DatabaseReference busLocRef;
+    ValueEventListener routeExistslistener;
     BusObject currentBusObject;
     TextView tvVolunteerDetails, tvTrackbus, tvNoVolunteer;
 
@@ -100,7 +101,7 @@ public class BusTrackingActivityDuplicate extends BaseActivity implements Google
         busTrackingMap = findViewById(R.id.mapView_bustracking);
         tvTrackbus.setText(String.format("Track Bus No. %s", routeNo));
         busLocRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo);
-        busLocRef.addListenerForSingleValueEvent(new ValueEventListener() {
+        routeExistslistener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 if (dataSnapshot.getChildrenCount() == 4) {
@@ -108,8 +109,6 @@ public class BusTrackingActivityDuplicate extends BaseActivity implements Google
                     pd.show();
                     initMapView(bundle);
                     tvNoVolunteer.setVisibility(View.GONE);
-                    busTrackingMap.onStart();
-                    listenForInfoChanges();
                 } else hideMapView();
             }
 
@@ -117,7 +116,8 @@ public class BusTrackingActivityDuplicate extends BaseActivity implements Google
             public void onCancelled(@NonNull DatabaseError databaseError) {
                 hideMapView();
             }
-        });
+        };
+        busLocRef.addValueEventListener(routeExistslistener);
 
     }
 
@@ -186,8 +186,10 @@ public class BusTrackingActivityDuplicate extends BaseActivity implements Google
         googleMap.addMarker(new MarkerOptions().title("College").position(SSNCEPoint));
         googleMap.setOnMarkerClickListener(this);
         this.googleMap = googleMap;
-        isMapLoaded = true;
         pd.dismiss();
+        busTrackingMap.onStart();
+        busLocRef.removeEventListener(routeExistslistener);
+        listenForInfoChanges();
     }
 
     private void listenForInfoChanges() {
