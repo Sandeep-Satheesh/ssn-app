@@ -145,12 +145,8 @@
         <activity
             android:name=".BaseActivity"
             android:screenOrientation="portrait" />
-        <activity
-            android:name=".BusTrackingActivity"
-            android:launchMode="singleTop"
-            android:resizeableActivity="false"
-            android:clearTaskOnLaunch="false"
-            android:screenOrientation="portrait" />
+
+        <activity android:name=".BusTrackingActivityDuplicate" />
 
         <meta-data
             android:name="preloaded_fonts"

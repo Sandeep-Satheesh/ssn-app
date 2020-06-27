@@ -1,62 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:fillViewport="true">
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    style="?android:attr/buttonBarButtonStyle">
 
-    <RelativeLayout
+    <Button
+        android:id="@+id/start"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:focusable="true"
-        android:focusableInTouchMode="true"
-        tools:context=".fragments.BusTrackingVolunteersFragment">
+        android:text="@string/start_volunteering"
+        android:layout_weight="1"
+        android:textColor="@color/colorAccent" />
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/textInputLayout_routeNo"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8sp"
-            android:focusable="true"
-            android:focusableInTouchMode="true"
-            android:hint="@string/enter_bus_route_no"
-            android:textColorHint="@color/colorAccent"
-            app:boxBackgroundColor="@color/white"
-            app:helperTextTextColor="@color/colorAccent"
-            app:hintTextColor="@color/colorAccent">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/route"
-                android:layout_width="match_parent"
-                android:layout_height="80dp"
-                android:layout_alignParentStart="true"
-                android:layout_alignParentTop="true"
-                android:layout_marginTop="96dp"
-                android:background="@drawable/et_border_bottom_lightmode"
-                android:focusable="true"
-                android:focusableInTouchMode="true"
-                android:inputType="textCapCharacters"
-                android:textAppearance="@style/TextAppearance.AppCompat.Medium" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <Button
-            android:id="@+id/start"
-            android:layout_below="@+id/textInputLayout_routeNo"
-            android:layout_marginTop="30dp"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/start_volunteering"
-            android:textColor="@color/colorAccent" />
-
-        <Button
-            android:id="@+id/stop"
-            android:layout_below="@+id/textInputLayout_routeNo"
-            android:layout_marginTop="30dp"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/stop_volunteering"
-            android:textColor="@color/colorAccent" />
-
-    </RelativeLayout>
-</ScrollView>
+    <Button
+        android:id="@+id/stop"
+        android:layout_width="match_parent"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:text="@string/stop_volunteering"
+        android:textColor="@color/colorAccent" />
+</LinearLayout>

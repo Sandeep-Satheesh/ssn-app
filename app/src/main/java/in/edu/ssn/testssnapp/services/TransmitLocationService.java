@@ -23,7 +23,7 @@ import androidx.annotation.Nullable;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
-import in.edu.ssn.testssnapp.BusTrackingActivity;
+import in.edu.ssn.testssnapp.BusTrackingActivityDuplicate;
 import in.edu.ssn.testssnapp.R;
 import in.edu.ssn.testssnapp.utils.SharedPref;
 
@@ -67,7 +67,7 @@ public class TransmitLocationService extends Service implements LocationListener
                 }
 
                 //Build the notification...
-                startForeground(1, prepareForegroundServiceNotification("Sharing your location", "Your location will be used to determine your bus' location.", this, new Intent(this, BusTrackingActivity.class).setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), getResources()));
+                startForeground(1, prepareForegroundServiceNotification("Sharing your location", "Your location will be used to determine your bus' location.", this, new Intent(this, BusTrackingActivityDuplicate.class).setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), getResources()));
 //                Toast.makeText(getApplicationContext(), "Location Sharing started successfully.", Toast.LENGTH_SHORT).show();
 
                 break;

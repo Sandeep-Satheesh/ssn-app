@@ -7,7 +7,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.cardview.widget.CardView;
@@ -24,7 +23,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 
 import in.edu.ssn.testssnapp.BusRoutesActivity;
-import in.edu.ssn.testssnapp.BusTrackingActivity;
+import in.edu.ssn.testssnapp.BusTrackingActivityDuplicate;
 import in.edu.ssn.testssnapp.NoNetworkActivity;
 import in.edu.ssn.testssnapp.PdfViewerActivity;
 import in.edu.ssn.testssnapp.R;
@@ -71,7 +70,7 @@ public class BusAlertsFragment extends Fragment {
         busTrackingCV.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                    Intent intent = new Intent(getContext(),BusTrackingActivity.class);
+                Intent intent = new Intent(getContext(), BusTrackingActivityDuplicate.class);
                     startActivity(intent);
                 }
         });

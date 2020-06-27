@@ -34,11 +34,12 @@ public class BusObject {
         return speed;
     }
 
-    public BusObject(String routeNo, String currentVolunteerId, Marker busMarker, int speed, OnLocationUpdatedListener locationUpdatedListener) {
+    public BusObject(String routeNo, String currentVolunteerId, Marker busMarker, int speed, boolean isSharerOnline, OnLocationUpdatedListener locationUpdatedListener) {
         this.currentVolunteerId = currentVolunteerId;
         this.busMarker = busMarker;
         this.routeNo = routeNo;
         this.speed = speed;
+        this.isSharerOnline = isSharerOnline;
         this.locationUpdatedListener = locationUpdatedListener;
     }
 
