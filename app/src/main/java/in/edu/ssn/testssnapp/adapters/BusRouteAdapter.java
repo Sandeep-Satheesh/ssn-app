@@ -1,10 +1,12 @@
 package in.edu.ssn.testssnapp.adapters;
 
 import android.content.Context;
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.cardview.widget.CardView;
@@ -13,6 +15,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 
+import in.edu.ssn.testssnapp.BusTrackingActivity;
+import in.edu.ssn.testssnapp.MapActivity;
 import in.edu.ssn.testssnapp.R;
 import in.edu.ssn.testssnapp.models.BusRoute;
 import in.edu.ssn.testssnapp.utils.SharedPref;
@@ -44,8 +48,20 @@ public class BusRouteAdapter extends RecyclerView.Adapter<BusRouteAdapter.BusRou
     @Override
     public void onBindViewHolder(@NonNull BusRouteAdapter.BusRouteViewHolder holder, int position) {
         BusRoute busRoute = this.busRoutes.get(position);
+        String Route = busRoute.getName();
         holder.routeNameTV.setText("Route " + busRoute.getName());
         holder.busStopsRV.setAdapter(new BusStopAdapter(context, busRoute));
+        holder.busRouteCV.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Toast.makeText(context, Route,Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(context, BusTrackingActivity.class);
+                intent.putExtra("routeNo", Route);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(intent);
+
+            }
+        });
     }
 
     @Override
