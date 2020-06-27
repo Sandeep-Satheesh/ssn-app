@@ -18,31 +18,12 @@ public class BusRoute implements Parcelable, Comparable {
             return new BusRoute[size];
         }
     };
-
-    public List<Double> getLats() {
-        return lats;
-    }
-
-    public List<Double> getLongs() {
-        return longs;
-    }
-
     int id;
     String name;
     List<String> stop;
     List<String> time;
-    List<Double> lats;
-    List<Double> longs;
 
     public BusRoute() {
-    }
-
-    public BusRoute(String name, List<String> stop, List<String> time, List<Double> lats, List<Double> longs) {
-        this.name = name;
-        this.stop = stop;
-        this.time = time;
-        this.lats = lats;
-        this.longs = longs;
     }
 
     protected BusRoute(Parcel in) {
@@ -72,6 +53,10 @@ public class BusRoute implements Parcelable, Comparable {
 
     public List<String> getStop() {
         return stop;
+    }
+
+    public void setStop(List<String> stop) {
+        this.stop = stop;
     }
 
     public List<String> getTime() {
