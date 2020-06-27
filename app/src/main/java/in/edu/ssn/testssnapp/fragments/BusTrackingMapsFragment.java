@@ -52,7 +52,7 @@ public class BusTrackingMapsFragment extends Fragment implements GoogleMap.OnMar
     DatabaseReference userRef;
     BusTrackingAdapter busTrackingAdapter;
     BidiMap<String, BusObject> busVolunteersBidiMap = new DualHashBidiMap<>();
-    TextView tvVolunteerDetails;
+    TextView tvVolunteerDetails, tvSelectBusNo;
     View view;
 
     @Nullable
@@ -132,10 +132,12 @@ public class BusTrackingMapsFragment extends Fragment implements GoogleMap.OnMar
 
     private void initUI(View view) {
         tvVolunteerDetails = view.findViewById(R.id.tv_volunteerid);
+        tvSelectBusNo = view.findViewById(R.id.tv_selectbusno);
         spnSelectBus = view.findViewById(R.id.spn_selectbus);
         busTrackingAdapter = new BusTrackingAdapter(getContext(), busVolunteersBidiMap.keySet().toArray(new String[0]));
         spnSelectBus.setAdapter(busTrackingAdapter);
         busTrackingMap = view.findViewById(R.id.mapView_bustracking);
+        hideRouteSelectionSpinner();
         spnSelectBus.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -146,18 +148,26 @@ public class BusTrackingMapsFragment extends Fragment implements GoogleMap.OnMar
                 if (busObj != null) {
                     googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(busVolunteersBidiMap.get(currentlySelectedBus).getLocation(), googleMap.getCameraPosition().zoom));
                     if (busObj.getCurrentVolunteerId() != null && !busObj.getCurrentVolunteerId().equals("null"))
-                        tvVolunteerDetails.setText("Current Volunteer" + (busObj.getCurrentVolunteerId().equals(SharedPref.getString(getContext(), "email")) ? ": You" : " ID: " + busObj.getCurrentVolunteerId() + "  "));
+                        tvVolunteerDetails.setText("Current Volunteer" + (busObj.getCurrentVolunteerId().equals(SharedPref.getString(getContext(), "email")) ? ": You" : " ID: " + busObj.getCurrentVolunteerId() + "    "));
                     else tvVolunteerDetails.setText("");
                 }
             }
 
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
+                if (busTrackingAdapter.getCount() == 0) {
+                    hideRouteSelectionSpinner();
+                }
                 googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(SSNCEPoint, 18f));
                 tvVolunteerDetails.setText("");
             }
         });
 
+    }
+
+    private void hideRouteSelectionSpinner() {
+        spnSelectBus.setVisibility(View.GONE);
+        tvSelectBusNo.setText(R.string.no_bus_data);
     }
 
     public void onMapReady(final GoogleMap googleMap) {
@@ -283,6 +293,13 @@ public class BusTrackingMapsFragment extends Fragment implements GoogleMap.OnMar
                 }
             }
         }));
+        if (spnSelectBus.getVisibility() == View.INVISIBLE && busTrackingAdapter.getCount() > 0)
+            showRouteSelectionSpinner();
+    }
+
+    private void showRouteSelectionSpinner() {
+        spnSelectBus.setVisibility(View.VISIBLE);
+        tvSelectBusNo.setText(R.string.select_your_bus);
     }
 
     private BitmapDescriptor getBitmapDescriptor(int id) {
