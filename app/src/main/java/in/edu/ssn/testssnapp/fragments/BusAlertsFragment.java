@@ -23,7 +23,6 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 
 import in.edu.ssn.testssnapp.BusRoutesActivity;
-import in.edu.ssn.testssnapp.BusTrackingActivityDuplicate;
 import in.edu.ssn.testssnapp.NoNetworkActivity;
 import in.edu.ssn.testssnapp.PdfViewerActivity;
 import in.edu.ssn.testssnapp.R;
@@ -35,12 +34,11 @@ import spencerstudios.com.bungeelib.Bungee;
 
 public class BusAlertsFragment extends Fragment {
 
-    CardView busRoutesCV, busTrackingCV;
+    CardView busRoutesCV;
     RecyclerView alertRV;
     ShimmerFrameLayout shimmer_view;
     FirestoreRecyclerAdapter adapter;
     boolean darkMode = false;
-    boolean dayScholar;
     public BusAlertsFragment() {
     }
 
@@ -67,14 +65,6 @@ public class BusAlertsFragment extends Fragment {
                 Bungee.slideLeft(getContext());
             }
         });
-        busTrackingCV.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(getContext(), BusTrackingActivityDuplicate.class);
-                    startActivity(intent);
-                }
-        });
-
         return view;
     }
 
@@ -141,16 +131,9 @@ public class BusAlertsFragment extends Fragment {
 
     void initUI(View view) {
         busRoutesCV = view.findViewById(R.id.busRoutesCV);
-        busTrackingCV = view.findViewById(R.id.busTrackingCV);
         alertRV = view.findViewById(R.id.alertRV);
         LinearLayoutManager layoutManager = new LinearLayoutManager(getContext());
         alertRV.setLayoutManager(layoutManager);
-        dayScholar = SharedPref.getBoolean(getContext(),"isDayScholar");
-        if(dayScholar){
-            busTrackingCV.setVisibility(View.VISIBLE);
-        }else
-            busTrackingCV.setVisibility(View.GONE);
-
 
         shimmer_view = view.findViewById(R.id.shimmer_view);
         shimmer_view.setVisibility(View.VISIBLE);

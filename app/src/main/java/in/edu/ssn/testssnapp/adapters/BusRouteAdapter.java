@@ -15,8 +15,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 
-import in.edu.ssn.testssnapp.BusTrackingActivity;
-import in.edu.ssn.testssnapp.MapActivity;
+import in.edu.ssn.testssnapp.BusTrackingActivityDuplicate;
 import in.edu.ssn.testssnapp.R;
 import in.edu.ssn.testssnapp.models.BusRoute;
 import in.edu.ssn.testssnapp.utils.SharedPref;
@@ -55,7 +54,7 @@ public class BusRouteAdapter extends RecyclerView.Adapter<BusRouteAdapter.BusRou
             @Override
             public void onClick(View v) {
                 Toast.makeText(context, Route,Toast.LENGTH_SHORT).show();
-                Intent intent = new Intent(context, BusTrackingActivity.class);
+                Intent intent = new Intent(context, BusTrackingActivityDuplicate.class);
                 intent.putExtra("routeNo", Route);
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 context.startActivity(intent);

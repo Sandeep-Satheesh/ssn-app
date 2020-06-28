@@ -64,7 +64,7 @@ public class BusTrackingActivityDuplicate extends BaseActivity implements Google
         //set up pd...
         pd = new ProgressDialog(this);
         pd.setCancelable(false);
-
+        pd.show();
         initUI(savedInstanceState);
     }
 
@@ -88,28 +88,29 @@ public class BusTrackingActivityDuplicate extends BaseActivity implements Google
             onBackPressed();
         });
         email = SharedPref.getString(getApplicationContext(), "email");
-
-        routeNo = "30A";
-        //TODO: Replace with this after implementing busrouteactivity part: routeNo = getIntent().getStringExtra("routeno");
+        routeNo = getIntent().getStringExtra("routeNo");
         volunteer = SharedPref.getString(getApplicationContext(), "student_volunteer", email);
+
         tvVolunteerDetails = findViewById(R.id.tv_volunteerid);
         tvNoVolunteer = findViewById(R.id.tv_novolunteer);
-        if (volunteer.equals("TRUE"))
-            tvNoVolunteer.setText(R.string.would_you_like_to_volunteer);
-
-        else tvNoVolunteer.setText(R.string.no_volunteer_available);
+        tvNoVolunteer.setText("");
+        tvVolunteerDetails.setText("");
         busTrackingMap = findViewById(R.id.mapView_bustracking);
         tvTrackbus.setText(String.format("Track Bus No. %s", routeNo));
         busLocRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo);
+        hideMapView();
+        initMapView(bundle);
         routeExistslistener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 if (dataSnapshot.getChildrenCount() == 4) {
-                    pd.setMessage("Please wait, the map is loading...");
-                    pd.show();
-                    initMapView(bundle);
-                    tvNoVolunteer.setVisibility(View.GONE);
-                } else hideMapView();
+                    if (isMapLoaded) {
+                        showMapView();
+                        listenForInfoChanges();
+                    }
+                } else {
+                    hideMapView();
+                }
             }
 
             @Override
@@ -117,14 +118,24 @@ public class BusTrackingActivityDuplicate extends BaseActivity implements Google
                 hideMapView();
             }
         };
+        busLocRef.addListenerForSingleValueEvent(routeExistslistener);
         busLocRef.addValueEventListener(routeExistslistener);
 
+    }
+
+    private void showMapView() {
+        tvVolunteerDetails.setVisibility(View.VISIBLE);
+        tvNoVolunteer.setVisibility(View.GONE);
+        busTrackingMap.setVisibility(View.VISIBLE);
     }
 
     private void hideMapView() {
         if (busTrackingMap != null) busTrackingMap.setVisibility(View.GONE);
         tvVolunteerDetails.setVisibility(View.GONE);
         tvNoVolunteer.setVisibility(View.VISIBLE);
+        if (volunteer.equals("TRUE"))
+            tvNoVolunteer.setText(R.string.would_you_like_to_volunteer);
+        else tvNoVolunteer.setText(R.string.no_volunteer_available);
     }
 
     private void initMapView(Bundle b) {
@@ -186,10 +197,16 @@ public class BusTrackingActivityDuplicate extends BaseActivity implements Google
         googleMap.addMarker(new MarkerOptions().title("College").position(SSNCEPoint));
         googleMap.setOnMarkerClickListener(this);
         this.googleMap = googleMap;
-        pd.dismiss();
         busTrackingMap.onStart();
         busLocRef.removeEventListener(routeExistslistener);
-        listenForInfoChanges();
+        isMapLoaded = true;
+        pd.dismiss();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (busTrackingMap != null && googleMap != null) busTrackingMap.onDestroy();
     }
 
     private void listenForInfoChanges() {
@@ -204,7 +221,7 @@ public class BusTrackingActivityDuplicate extends BaseActivity implements Google
 
                     if (latLongString == null || latLongString.isEmpty() || sharerId == null || sharerId.isEmpty())
                         return;
-
+                    if (busTrackingMap.getVisibility() == View.VISIBLE) showMapView();
                     int sep = latLongString.indexOf(',');
                     LatLng currentlatLongs = new LatLng(sep == 1 ? 0 : Double.parseDouble(latLongString.substring(0, sep - 1)), sep == 1 ? 0 : Double.parseDouble(latLongString.substring(sep + 1)));
 
