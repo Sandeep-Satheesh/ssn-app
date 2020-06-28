@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
+    android:id="@+id/ll_bustracking"
     android:layout_height="match_parent"
-    tools:context=".MapActivity">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:background="@color/white">
 
     <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:layout_width="match_parent"
@@ -45,16 +47,17 @@
                     app:contentInsetStart="0dp"
                     app:layout_collapseMode="pin">
 
-                    <RelativeLayout
+                    <LinearLayout
                         android:id="@+id/fakeAppbarLL"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        >
+                        android:orientation="horizontal">
 
                         <ImageView
                             android:id="@+id/backIV"
                             android:layout_width="@dimen/_35sdp"
                             android:layout_height="@dimen/_35sdp"
+                            android:layout_gravity="center"
                             android:layout_margin="@dimen/_6sdp"
                             android:clickable="true"
                             android:focusable="true"
@@ -65,70 +68,78 @@
 
                         <TextView
                             android:id="@+id/tv_trackbus"
-                            android:layout_toRightOf="@+id/backIV"
-                            android:layout_marginLeft="@dimen/_5sdp"
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_gravity="center"
-                            android:layout_centerVertical="true"
-                            android:text=""
+                            android:layout_weight="2"
                             android:fontFamily="@font/open_sans_bold"
+                            android:text="@string/track_bus"
                             android:textColor="@android:color/white"
                             android:textSize="20sp"
                             android:textStyle="bold" />
-                        <Button
+
+                        <ImageView
+                            android:id="@+id/iv_busOnlineStatus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:layout_marginEnd="20sp"
+                            android:background="?android:selectableItemBackground"
+                            android:contentDescription="@string/sharer_online_status"
+                            android:src="@drawable/circle_busvolunteer_offline" />
+
+                        <ImageButton
                             android:id="@+id/start"
-                            android:gravity="center"
-                            android:layout_centerVertical="true"
-                            android:layout_alignParentRight="true"
-                            android:layout_marginRight="@dimen/_40sdp"
+                            android:background="?android:selectableItemBackground"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/start_volunteering"
-                            android:textColor="@color/colorAccent" />
+                            android:layout_marginEnd="30sp"
+                            android:layout_gravity="center"
+                            android:contentDescription="Location Sharing: Off"
+                            android:src="@drawable/ic_location_off" />
 
-                        <Button
+                        <ImageButton
                             android:id="@+id/stop"
-                            android:layout_alignParentRight="true"
-                            android:layout_marginRight="@dimen/_40sdp"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/stop_volunteering"
-                            android:textColor="@color/colorAccent" />
-
-                    </RelativeLayout>
-
-
-
+                            android:layout_gravity="center"
+                            android:layout_marginEnd="30sp"
+                            android:background="?android:selectableItemBackground"
+                            android:contentDescription="Location Sharing: On"
+                            android:src="@drawable/ic_location_on" />
+                    </LinearLayout>
                 </androidx.appcompat.widget.Toolbar>
             </com.google.android.material.appbar.CollapsingToolbarLayout>
         </com.google.android.material.appbar.AppBarLayout>
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
     <RelativeLayout
         android:id="@+id/maplayout"
-        android:layout_below="@+id/layout1"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        >
-    <HorizontalScrollView
-        android:id="@+id/hscrollview_vldetailsholder"
-        android:layout_width="wrap_content"
-        android:layout_marginTop="6dp"
-        android:layout_gravity="center"
-        android:foregroundGravity="center"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="7sp">
+        android:layout_height="match_parent">
 
-        <TextView
-            android:id="@+id/tv_volunterid"
-            android:fontFamily="@font/open_sans"
-            android:layout_width="wrap_content"
-            android:layout_marginStart="10sp"
-            android:textAlignment="center"
-            android:textColor="@color/colorAccent"
+        <HorizontalScrollView
+            android:id="@+id/hscrollview_vldetailsholder"
+            android:layout_width="match_parent"
+            android:layout_marginTop="6dp"
+            android:layout_gravity="center_horizontal"
+            android:foregroundGravity="center_horizontal"
             android:layout_height="wrap_content"
-            android:scrollHorizontally="true" />
-    </HorizontalScrollView>
+            android:layout_marginBottom="7sp">
+
+            <TextView
+                android:id="@+id/tv_volunterid"
+                android:fontFamily="@font/open_sans"
+                android:layout_width="wrap_content"
+                android:layout_marginStart="10sp"
+                android:textAlignment="center"
+                android:layout_gravity="center_horizontal"
+                android:gravity="center_horizontal"
+                android:foregroundGravity="center_horizontal"
+                android:textColor="@color/colorAccent"
+                android:layout_height="wrap_content"
+                android:scrollHorizontally="true" />
+        </HorizontalScrollView>
 
 
 
@@ -139,9 +150,13 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
   </RelativeLayout>
+
     <RelativeLayout
         android:layout_below="@id/layout1"
         android:id="@+id/layout_empty"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:foregroundGravity="center"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:visibility="gone">
@@ -151,18 +166,20 @@
             android:layout_width="@dimen/_220sdp"
             android:layout_height="@dimen/_220sdp"
             android:layout_centerInParent="true"
-            app:srcCompat="@drawable/bus_empty"/>
+            app:srcCompat="@drawable/bus_empty" />
 
         <TextView
-            android:id="@+id/text1TV"
+            android:id="@+id/tv_novolunteer"
             android:layout_width="wrap_content"
+            android:textAlignment="center"
+            android:gravity="center"
             android:layout_height="wrap_content"
             android:fontFamily="@font/open_sans"
-            android:text="Sorry! no volunteer is sharing location"
-            android:textColor="@color/colorAccentText"
+            android:text="@string/no_volunteer_available"
+            android:textColor="@color/colorAccent"
             android:layout_below="@+id/emptyIV"
             android:layout_centerHorizontal="true"
             android:textSize="@dimen/_12ssp" />
     </RelativeLayout>
 
-</RelativeLayout>
+</LinearLayout>

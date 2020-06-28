@@ -58,12 +58,9 @@ public class BusAlertsFragment extends Fragment {
 
         setupFireStore();
 
-        busRoutesCV.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startActivity(new Intent(getContext(), BusRoutesActivity.class));
-                Bungee.slideLeft(getContext());
-            }
+        busRoutesCV.setOnClickListener(v -> {
+            startActivity(new Intent(getContext(), BusRoutesActivity.class));
+            Bungee.slideLeft(getContext());
         });
         return view;
     }

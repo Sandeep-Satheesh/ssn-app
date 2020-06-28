@@ -146,8 +146,10 @@
             android:name=".BaseActivity"
             android:screenOrientation="portrait" />
 
-        <activity android:name=".BusTrackingActivityDuplicate" />
-        <activity android:name=".MapActivity"/>
+        <activity
+            android:name=".MapActivity"
+            android:screenOrientation="portrait" />
+
         <meta-data
             android:name="preloaded_fonts"
             android:resource="@array/preloaded_fonts" />

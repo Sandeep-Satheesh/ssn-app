@@ -67,26 +67,18 @@
         android:orientation="horizontal">
 
         <androidx.cardview.widget.CardView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/_5sdp"
-            android:layout_weight="1"
-            app:cardCornerRadius="@dimen/_8sdp"
-            app:cardBackgroundColor="@color/darkColorLight"
-            app:cardElevation="0dp"
-            android:id="@+id/busTrackingCV"
-            android:clickable="true"
+			android:layout_width="0dp"
+			android:layout_height="wrap_content"
+			android:layout_marginBottom="@dimen/_5sdp"
+			android:layout_weight="1"
+			app:cardCornerRadius="@dimen/_8sdp"
+			app:cardBackgroundColor="@color/darkColorLight"
+			app:cardElevation="0dp"
+			android:id="@+id/busTrackingCV"
+			android:clickable="true"
 			android:foreground="?attr/selectableItemBackground"
 			android:layout_marginStart="@dimen/_12sdp"
-			android:layout_marginEnd="@dimen/_12sdp">
-
-			<ImageView
-				android:layout_width="match_parent"
-				android:layout_height="@dimen/_112sdp"
-				android:tint="#000000"
-				android:scaleType="centerCrop"
-				app:srcCompat="@drawable/bus_route_bg" />
-		</androidx.cardview.widget.CardView>
+			android:layout_marginEnd="@dimen/_12sdp" />
 	</LinearLayout>
     <RelativeLayout
         android:layout_width="match_parent"
