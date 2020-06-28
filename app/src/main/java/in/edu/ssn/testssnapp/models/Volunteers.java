@@ -9,6 +9,8 @@ public class Volunteers {
     public String emailid;
     @CsvParameter(value = "volunteer")
     public String volunteer;
+    @CsvParameter(value = "busno")
+    public String busno;
 
     public String getEmailid(){
         return emailid;
@@ -17,4 +19,6 @@ public class Volunteers {
     public String getVolunteer(){
         return volunteer;
     }
+
+    public String getBusno(){ return busno; }
 }

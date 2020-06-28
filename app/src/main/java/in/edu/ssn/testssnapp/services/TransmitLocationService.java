@@ -23,7 +23,8 @@ import androidx.annotation.Nullable;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
-import in.edu.ssn.testssnapp.BusTrackingActivityDuplicate;
+
+import in.edu.ssn.testssnapp.MapActivity;
 import in.edu.ssn.testssnapp.R;
 import in.edu.ssn.testssnapp.utils.SharedPref;
 
@@ -67,7 +68,7 @@ public class TransmitLocationService extends Service implements LocationListener
                 }
 
                 //Build the notification...
-                startForeground(1, prepareForegroundServiceNotification("Sharing your location", "Your location will be used to determine your bus' location.", this, new Intent(this, BusTrackingActivityDuplicate.class).setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), getResources()));
+                startForeground(1, prepareForegroundServiceNotification("Sharing your location", "Your location will be used to determine your bus' location.", this, new Intent(this, MapActivity.class).setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP).putExtra("routeNo",routeNo), getResources()));
 //                Toast.makeText(getApplicationContext(), "Location Sharing started successfully.", Toast.LENGTH_SHORT).show();
 
                 break;
@@ -188,7 +189,7 @@ public class TransmitLocationService extends Service implements LocationListener
 /*TODO: Convert this code to java and put it in the service, as a function, to check if a point lies within a polygon
 function inside(point, vs) {
     // ray-casting algorithm based on
-    // http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
+     //http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
 
     var x = point[0], y = point[1];
 
@@ -204,4 +205,4 @@ function inside(point, vs) {
 
     return inside;
 };
- */
+*/

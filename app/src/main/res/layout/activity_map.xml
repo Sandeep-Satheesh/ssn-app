@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MapActivity">
+
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/layout1">
+
+
+        <com.google.android.material.appbar.AppBarLayout
+            android:id="@+id/searchRL"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:animateLayoutChanges="true"
+            android:background="@color/colorAccent"
+            app:expanded="true">
+
+            <com.google.android.material.appbar.CollapsingToolbarLayout
+                android:id="@+id/collapsing_toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/_10sdp"
+                android:fitsSystemWindows="true"
+                app:contentScrim="@android:color/white"
+                app:expandedTitleTextAppearance="@android:color/transparent"
+                app:layout_scrollFlags="scroll|enterAlwaysCollapsed|snap|exitUntilCollapsed">
+
+                <androidx.appcompat.widget.Toolbar
+                    android:id="@+id/toolbar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@color/colorAccent"
+                    android:contentInsetStart="0dp"
+                    android:contentInsetLeft="0dp"
+                    android:contentInsetEnd="0dp"
+                    android:contentInsetRight="0dp"
+                    app:contentInsetEnd="0dp"
+                    app:contentInsetLeft="0dp"
+                    app:contentInsetRight="0dp"
+                    app:contentInsetStart="0dp"
+                    app:layout_collapseMode="pin">
+
+                    <RelativeLayout
+                        android:id="@+id/fakeAppbarLL"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        >
+
+                        <ImageView
+                            android:id="@+id/backIV"
+                            android:layout_width="@dimen/_35sdp"
+                            android:layout_height="@dimen/_35sdp"
+                            android:layout_margin="@dimen/_6sdp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="?selectableItemBackground"
+                            android:padding="@dimen/_2sdp"
+                            android:tint="@android:color/white"
+                            app:srcCompat="@drawable/ic_back" />
+
+                        <TextView
+                            android:id="@+id/tv_trackbus"
+                            android:layout_toRightOf="@+id/backIV"
+                            android:layout_marginLeft="@dimen/_5sdp"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:layout_centerVertical="true"
+                            android:text=""
+                            android:fontFamily="@font/open_sans_bold"
+                            android:textColor="@android:color/white"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
+                        <Button
+                            android:id="@+id/start"
+                            android:gravity="center"
+                            android:layout_centerVertical="true"
+                            android:layout_alignParentRight="true"
+                            android:layout_marginRight="@dimen/_40sdp"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/start_volunteering"
+                            android:textColor="@color/colorAccent" />
+
+                        <Button
+                            android:id="@+id/stop"
+                            android:layout_alignParentRight="true"
+                            android:layout_marginRight="@dimen/_40sdp"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/stop_volunteering"
+                            android:textColor="@color/colorAccent" />
+
+                    </RelativeLayout>
+
+
+
+                </androidx.appcompat.widget.Toolbar>
+            </com.google.android.material.appbar.CollapsingToolbarLayout>
+        </com.google.android.material.appbar.AppBarLayout>
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+    <RelativeLayout
+        android:id="@+id/maplayout"
+        android:layout_below="@+id/layout1"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        >
+    <HorizontalScrollView
+        android:id="@+id/hscrollview_vldetailsholder"
+        android:layout_width="wrap_content"
+        android:layout_marginTop="6dp"
+        android:layout_gravity="center"
+        android:foregroundGravity="center"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="7sp">
+
+        <TextView
+            android:id="@+id/tv_volunterid"
+            android:fontFamily="@font/open_sans"
+            android:layout_width="wrap_content"
+            android:layout_marginStart="10sp"
+            android:textAlignment="center"
+            android:textColor="@color/colorAccent"
+            android:layout_height="wrap_content"
+            android:scrollHorizontally="true" />
+    </HorizontalScrollView>
+
+
+
+    <com.google.android.gms.maps.MapView
+        android:id="@+id/mapView_bus"
+        android:layout_below="@+id/hscrollview_vldetailsholder"
+        android:layout_marginTop="7dp"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+  </RelativeLayout>
+    <RelativeLayout
+        android:layout_below="@id/layout1"
+        android:id="@+id/layout_empty"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/emptyIV"
+            android:layout_width="@dimen/_220sdp"
+            android:layout_height="@dimen/_220sdp"
+            android:layout_centerInParent="true"
+            app:srcCompat="@drawable/bus_empty"/>
+
+        <TextView
+            android:id="@+id/text1TV"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/open_sans"
+            android:text="Sorry! no volunteer is sharing location"
+            android:textColor="@color/colorAccentText"
+            android:layout_below="@+id/emptyIV"
+            android:layout_centerHorizontal="true"
+            android:textSize="@dimen/_12ssp" />
+    </RelativeLayout>
+
+</RelativeLayout>

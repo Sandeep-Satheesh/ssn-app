@@ -133,12 +133,10 @@ public class BusTrackingActivityDuplicate extends BaseActivity implements Google
         if (busTrackingMap != null) busTrackingMap.setVisibility(View.GONE);
         tvVolunteerDetails.setVisibility(View.GONE);
         tvNoVolunteer.setVisibility(View.VISIBLE);
-        if (volunteer.equals("TRUE"))
-            tvNoVolunteer.setText(R.string.would_you_like_to_volunteer);
-        else tvNoVolunteer.setText(R.string.no_volunteer_available);
+        tvNoVolunteer.setText(R.string.no_volunteer_available);
     }
 
-    private void initMapView(Bundle b) {
+    private void initMapView(Bundle b) { //map load
         Bundle mapViewBundle = null;
         if (b != null) {
             mapViewBundle = b.getBundle(Constants.GMAPS_TEST_API_KEY);
@@ -232,8 +230,6 @@ public class BusTrackingActivityDuplicate extends BaseActivity implements Google
                     } else if (!sharerId.equals("null")) {
                         if (currentlatLongs.latitude != currentBusObject.getLocation().latitude || currentlatLongs.longitude != currentBusObject.getLocation().longitude)
                             currentBusObject.setLocation(currentlatLongs);
-
-                        if (speed != currentBusObject.getSpeed())
                             currentBusObject.setSpeed(speed);
 
                         if (!Objects.equals(sharerId, currentBusObject.getCurrentVolunteerId()))
@@ -284,9 +280,9 @@ public class BusTrackingActivityDuplicate extends BaseActivity implements Google
 
             @Override
             public void onSpeedChanged(String r, int newSpeed) {
-                if (busMarker.isInfoWindowShown()) {
-                    busMarker.hideInfoWindow();
-                    busMarker.showInfoWindow();
+                if (currentBusObject.getBusMarker().isInfoWindowShown()) {
+                    currentBusObject.getBusMarker().hideInfoWindow();
+                    currentBusObject.getBusMarker().showInfoWindow();
                 }
             }
         });
