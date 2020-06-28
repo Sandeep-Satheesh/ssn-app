@@ -23,9 +23,9 @@ import androidx.annotation.Nullable;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
-
 import in.edu.ssn.testssnapp.MapActivity;
 import in.edu.ssn.testssnapp.R;
+import in.edu.ssn.testssnapp.utils.CommonUtils;
 import in.edu.ssn.testssnapp.utils.SharedPref;
 
 public class TransmitLocationService extends Service implements LocationListener {
@@ -119,6 +119,7 @@ public class TransmitLocationService extends Service implements LocationListener
 
     @Override
     public void onLocationChanged(Location location) {
+        checkForInternetConnection();
         busLocDBRef.child("currentSharerID").setValue(userID);
         busLocDBRef.child("sharingLoc").setValue(true);
         latLongString = location.getLatitude() + "," + location.getLongitude();
@@ -126,12 +127,19 @@ public class TransmitLocationService extends Service implements LocationListener
         speed = (int) location.getSpeed();
         busLocDBRef.child("speed").setValue(speed);
         busLocDBRef.child("sharingLoc").setValue(true);
+    }
 
-        //TODO: auto-stop near clg
+    private void checkForInternetConnection() {
+        if (CommonUtils.alerter(this)) {
+            locationManager.removeUpdates(this);
+            stopForeground(true);
+            stopSelf();
+        }
     }
 
     @Override
     public void onStatusChanged(String provider, int status, Bundle extras) {
+        checkForInternetConnection();
         try {
             if (status == LocationProvider.AVAILABLE) {
                 busLocDBRef.child("currentSharerID").setValue(userID);
@@ -157,10 +165,12 @@ public class TransmitLocationService extends Service implements LocationListener
         } catch (SecurityException e) {
             e.printStackTrace();
         }
+        checkForInternetConnection();
     }
 
     @Override
     public void onProviderEnabled(String provider) {
+        checkForInternetConnection();
         busLocDBRef.child("currentSharerID").setValue(userID);
         busLocDBRef.child("sharingLoc").setValue(true);
         try {
@@ -174,11 +184,11 @@ public class TransmitLocationService extends Service implements LocationListener
         } catch (SecurityException e) {
             e.printStackTrace();
         }
-
     }
 
     @Override
     public void onProviderDisabled(String provider) {
+        checkForInternetConnection();
         busLocDBRef.child("sharingLoc").setValue(false);
         busLocDBRef.child("speed").setValue(0);
         busLocDBRef.child("currentSharerID").setValue("null");

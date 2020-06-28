@@ -5,13 +5,18 @@ import com.google.android.gms.maps.model.Marker;
 
 public class BusObject {
     String routeNo, currentVolunteerId;
+
+    public void setRouteNo(String routeNo) {
+        this.routeNo = routeNo;
+    }
+
     Marker busMarker;
     OnLocationUpdatedListener locationUpdatedListener;
     boolean isSharerOnline;
     int speed;
 
 
-    public void setSharerOnline(boolean sharerOnline) {
+    public void setUserOnline(boolean sharerOnline) {
         isSharerOnline = sharerOnline;
         locationUpdatedListener.onOnlineStatusChanged(routeNo, sharerOnline);
     }
@@ -32,6 +37,13 @@ public class BusObject {
 
     public int getSpeed() {
         return speed;
+    }
+
+    public void setLocationUpdatedListener(OnLocationUpdatedListener locationUpdatedListener) {
+        this.locationUpdatedListener = locationUpdatedListener;
+    }
+
+    public BusObject() {
     }
 
     public BusObject(String routeNo, String currentVolunteerId, Marker busMarker, int speed, boolean isSharerOnline, OnLocationUpdatedListener locationUpdatedListener) {
