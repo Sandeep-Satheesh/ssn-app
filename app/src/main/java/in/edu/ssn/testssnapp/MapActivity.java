@@ -64,10 +64,9 @@ import spencerstudios.com.bungeelib.Bungee;
 public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClickListener, OnMapReadyCallback {
     String routeNo, userId, volunteerId, volunteerBusNo;
     DatabaseReference busLocRef;
-    boolean isBusVolunteer;
     TextView tvStatusBarHeader, tvNoVolunteer;
     ImageButton cmdStopVolunteering, cmdStartVolunteering;
-    volatile boolean isSharingLoc = false;
+    volatile boolean isSharingLoc = false, isBusVolunteer = false, stopNetworkThread = false, isUserOnline = true;
     LatLng SSNCEPoint = new LatLng(12.7525, 80.196111);
     GoogleMap googleMap;
     MapView busTrackingMap;
@@ -80,7 +79,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
     RelativeLayout mapRL, novolunteerRL;
 
     Thread monitorNetworkStateThread;
-    private volatile boolean stopNetworkThread = false, isUserOnline = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -103,29 +101,36 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         pd.setCancelable(false);
         pd.show();
         initUI(savedInstanceState);
-        monitorNetworkStateThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
+        if (monitorNetworkStateThread == null) {
+            monitorNetworkStateThread = new Thread(() -> {
                 while (!Thread.currentThread().isInterrupted()) {
-                    if (!stopNetworkThread && currentBusObject != null) {
-                        if ((checkVolunteerOfThisBus() && isSharingLoc && !isMyServiceRunning(TransmitLocationService.class)) || (CommonUtils.alerter(MapActivity.this) && isUserOnline)) {
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    currentBusObject.setUserOnline(false);
-                                    if (checkVolunteerOfThisBus()) {
-                                        stopLocationTransmission();
-                                    }
-                                    isUserOnline = false;
+                    if (stopNetworkThread) {
+                        Thread.currentThread().interrupt();
+                        return;
+                    }
+                    boolean b = CommonUtils.alerter(getApplicationContext());
+                    if (isUserOnline && b) {
+                        if (currentBusObject != null) {
+                            runOnUiThread(() -> {
+                                currentBusObject.setUserOnline(false);
+                                if (isMyServiceRunning(TransmitLocationService.class)) {
+                                    stopLocationTransmission();
                                 }
+                                currentBusObject.setUserOnline(false);
+                                isUserOnline = false;
+                                DatabaseReference.goOffline();
                             });
-                        } else if (!CommonUtils.alerter(MapActivity.this) && !isUserOnline) {
-                            isUserOnline = true;
                         }
-                    } else if (stopNetworkThread) Thread.currentThread().interrupt();
+                    } else if (!b && currentBusObject != null && !isUserOnline) {
+                        DatabaseReference.goOnline();
+                        isUserOnline = true;
+                        currentBusObject.setUserOnline(currentBusObject.isSharerOnline());
+                    }
                 }
-            }
-        });
+            });
+            monitorNetworkStateThread.setPriority(Thread.MAX_PRIORITY);
+            monitorNetworkStateThread.start();
+        }
     }
 
     private void initUI(Bundle bundle) {
@@ -155,6 +160,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         });
 
         busLocRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo);
+        DatabaseReference.goOnline();
         hideMapView();
         initMapView(bundle);
         routeExistslistener = new ValueEventListener() {
@@ -181,7 +187,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
 
         //*****************************Volunteer Section ****************************//
         if (isBusVolunteer) {
-
             if (SharedPref.getBoolean(getApplicationContext(), "stopbutton"))
                 if (isMyServiceRunning(TransmitLocationService.class)) disableControls();
                 else {
@@ -249,6 +254,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                         SharedPref.putString(getApplicationContext(), "routeno", routeNo);
                         stopLocationTransmission();
                         busLocRef.removeValue();
+                        if (isBusVolunteer) currentBusObject.setUserOnline(false);
                     },
                     (dialog, which) -> dialog.dismiss()).show());
 
@@ -270,11 +276,13 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         i.setAction(TransmitLocationService.ACTION_START_FOREGROUND_SERVICE);
         i.putExtra("routeNo", routeNo);
         startService(i);
+        busLocRef.onDisconnect().removeValue();
         isSharingLoc = true;
         disableControls();
     }
 
     private void stopLocationTransmission() {
+        currentBusObject.setUserOnline(false);
         busLocRef.removeEventListener(concurrentVolunteerListener);
         Intent i = new Intent(getApplicationContext(), TransmitLocationService.class);
         i.setAction(TransmitLocationService.ACTION_STOP_FOREGROUND_SERVICE);
@@ -439,8 +447,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
     }
 
     private void listenForInfoChanges() {
-        monitorNetworkStateThread.setPriority(Thread.MAX_PRIORITY);
-        monitorNetworkStateThread.start();
         mainBusInfoChangesListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -454,7 +460,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                         return;
 
                     updateChangesToCurrentBusObject(latLongString, sharerId, speed, isSharingLoc);
-                } else hideMapView();
+                } else currentBusObject.setUserOnline(false);
             }
 
             @Override
@@ -509,7 +515,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                 fadeOut.setAnimationListener(new Animation.AnimationListener() {
                     @Override
                     public void onAnimationStart(Animation animation) {
-
                     }
 
                     @Override
@@ -526,7 +531,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
 
                     @Override
                     public void onAnimationRepeat(Animation animation) {
-
                     }
                 });
                 fadeIn.setDuration(500);
@@ -595,7 +599,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
     @Override
     public void onStop() {
         super.onStop();
-        stopNetworkThread = true;
         if (monitorNetworkStateThread != null) monitorNetworkStateThread.interrupt();
         if (googleMap != null && busTrackingMap != null) busTrackingMap.onStop();
     }
@@ -603,15 +606,16 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
     @Override
     public void onResume() {
         super.onResume();
-        if (googleMap != null) busTrackingMap.onResume();
-        if (currentBusObject != null)
-            googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentBusObject.getLocation(), googleMap.getCameraPosition().zoom));
+        if (googleMap != null) {
+            busTrackingMap.onResume();
+            if (currentBusObject != null)
+                googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentBusObject.getLocation(), googleMap.getCameraPosition().zoom));
+        }
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        stopNetworkThread = true;
         if (googleMap != null && busTrackingMap != null) busTrackingMap.onPause();
     }
 
@@ -640,8 +644,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
 
     @Override
     public void onBackPressed() {
-        stopNetworkThread = true;
-        if (monitorNetworkStateThread != null) monitorNetworkStateThread.interrupt();
         Bungee.slideRight(this);
         finish();
     }
