@@ -282,7 +282,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
     }
 
     private void stopLocationTransmission() {
-        currentBusObject.setUserOnline(false);
+        if (currentBusObject != null) currentBusObject.setUserOnline(false);
         busLocRef.removeEventListener(concurrentVolunteerListener);
         Intent i = new Intent(getApplicationContext(), TransmitLocationService.class);
         i.setAction(TransmitLocationService.ACTION_STOP_FOREGROUND_SERVICE);
