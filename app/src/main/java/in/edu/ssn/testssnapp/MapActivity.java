@@ -500,7 +500,15 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         busObject.setLocationUpdatedListener(new BusObject.OnLocationUpdatedListener() {
             @Override
             public void onSharerIdChanged(String r, String newSharerId) {
-                tvVolunteerDetails.setText(String.format("Current Volunteer%s", newSharerId.equals(SharedPref.getString(getApplicationContext(), "email")) ? ": You" : " ID:\n" + newSharerId + "     "));
+                if (busObject.isSharerOnline()) {
+                    tvVolunteerDetails.setText(String.format("Current Volunteer%s", newSharerId.equals(SharedPref.getString(getApplicationContext(), "email")) ? ": You" : " ID:\n" + newSharerId + "     "));
+                    isBusOnlineIV.setImageResource(R.drawable.circle_busvolunteer_online);
+
+                } else {
+                    isBusOnlineIV.setImageResource(R.drawable.circle_busvolunteer_offline);
+                    tvVolunteerDetails.setText(String.format("Location last volunteered by%s", busObject.getCurrentVolunteerId().equals(SharedPref.getString(getApplicationContext(), "email")) ? ": You" : " ID:\n" + busObject.getCurrentVolunteerId() + "     "));
+                }
+
             }
 
             @Override
@@ -520,6 +528,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                     @Override
                     public void onAnimationEnd(Animation animation) {
                         if (isOnline) {
+                            tvVolunteerDetails.setText(String.format("Current Volunteer%s", busObject.getCurrentVolunteerId().equals(SharedPref.getString(getApplicationContext(), "email")) ? ": You" : " ID:\n" + busObject.getCurrentVolunteerId() + "     "));
                             isBusOnlineIV.setImageResource(R.drawable.circle_busvolunteer_online);
 
                         } else {
