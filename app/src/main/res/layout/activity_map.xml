@@ -83,7 +83,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_gravity="center"
-                            android:layout_marginEnd="20sp"
+                            android:layout_marginEnd="50sp"
                             android:background="?android:selectableItemBackground"
                             android:contentDescription="@string/sharer_online_status"
                             android:src="@drawable/circle_busvolunteer_offline" />
