@@ -282,7 +282,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         i.putExtra("userID", userId);
         startService(i);
         enableControls();
-        SharedPref.putString(getApplicationContext(), "routeno", "");
+        SharedPref.putString(getApplicationContext(), "routeno", routeNo);
         SharedPref.putBoolean(getApplicationContext(), "stopbutton", false);
         isSharingLoc = false;
     }

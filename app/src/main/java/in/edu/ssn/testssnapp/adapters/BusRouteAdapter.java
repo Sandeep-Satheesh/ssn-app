@@ -6,6 +6,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.cardview.widget.CardView;
@@ -22,6 +23,7 @@ import in.edu.ssn.testssnapp.utils.SharedPref;
 public class BusRouteAdapter extends RecyclerView.Adapter<BusRouteAdapter.BusRouteViewHolder> {
 
     boolean darkMode = false;
+    boolean daySholar = false;
     private ArrayList<BusRoute> busRoutes;
     private Context context;
 
@@ -29,6 +31,8 @@ public class BusRouteAdapter extends RecyclerView.Adapter<BusRouteAdapter.BusRou
         this.context = context;
         this.busRoutes = busRoutes;
         darkMode = SharedPref.getBoolean(context, "dark_mode");
+        daySholar = SharedPref.getBoolean(context, "isDayScholar");
+
     }
 
     @NonNull
@@ -52,11 +56,14 @@ public class BusRouteAdapter extends RecyclerView.Adapter<BusRouteAdapter.BusRou
         holder.busRouteCV.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(context, MapActivity.class);
-                intent.putExtra("routeNo", Route);
-                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                context.startActivity(intent);
-
+                if(daySholar) {
+                    Intent intent = new Intent(context, MapActivity.class);
+                    intent.putExtra("routeNo", Route);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(intent);
+                }
+                else
+                    Toast.makeText(context,"Tracking features is not available for Hostellers",Toast.LENGTH_LONG).show();
             }
         });
     }

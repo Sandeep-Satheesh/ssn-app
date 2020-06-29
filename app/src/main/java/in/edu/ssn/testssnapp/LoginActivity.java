@@ -25,6 +25,7 @@ import androidx.cardview.widget.CardView;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.target.SimpleTarget;
 import com.bumptech.glide.request.transition.Transition;
+import com.bumptech.glide.signature.ObjectKey;
 import com.daimajia.androidanimations.library.Techniques;
 import com.daimajia.androidanimations.library.YoYo;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
@@ -686,7 +687,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
     public class updateVolunteer extends AsyncTask<Void, Void, Void> {
         @Override
         protected Void doInBackground(Void... voids) {
-            Glide.with(LoginActivity.this).asFile().load("https://docs.google.com/spreadsheets/u/0/d/1kcPtObp_2M2dQOxnR1of9zl7zeLPxWz-ZDpatO-YKq4/export?format=csv&id=1kcPtObp_2M2dQOxnR1of9zl7zeLPxWz-ZDpatO-YKq4&gid=0").into(new SimpleTarget<File>() {
+            Glide.with(LoginActivity.this).asFile().load("https://docs.google.com/spreadsheets/u/0/d/1kcPtObp_2M2dQOxnR1of9zl7zeLPxWz-ZDpatO-YKq4/export?format=csv&id=1kcPtObp_2M2dQOxnR1of9zl7zeLPxWz-ZDpatO-YKq4&gid=0").signature(new ObjectKey(System.currentTimeMillis())).into(new SimpleTarget<File>() {
                 @Override
                 public void onResourceReady(@NonNull File resource, @Nullable Transition<? super File> transition) {
                     File dir = new File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "SSNCE");

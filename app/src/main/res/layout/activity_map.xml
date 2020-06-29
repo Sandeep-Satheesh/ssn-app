@@ -96,7 +96,7 @@
                             android:layout_marginEnd="30sp"
                             android:layout_gravity="center"
                             android:contentDescription="Location Sharing: Off"
-                            android:src="@drawable/ic_location_off" />
+                            android:src="@drawable/ic_location_on" />
 
                         <ImageButton
                             android:id="@+id/stop"
@@ -106,7 +106,7 @@
                             android:layout_marginEnd="30sp"
                             android:background="?android:selectableItemBackground"
                             android:contentDescription="Location Sharing: On"
-                            android:src="@drawable/ic_location_on" />
+                            android:src="@drawable/ic_location_off" />
                     </LinearLayout>
                 </androidx.appcompat.widget.Toolbar>
             </com.google.android.material.appbar.CollapsingToolbarLayout>
