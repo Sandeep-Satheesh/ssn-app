@@ -146,7 +146,6 @@ public class TransmitLocationService extends Service implements LocationListener
             } else if (status == LocationProvider.TEMPORARILY_UNAVAILABLE) {
                 busLocDBRef.child("sharingLoc").setValue(false);
                 busLocDBRef.child("speed").setValue(0);
-                busLocDBRef.child("currentSharerID").setValue("null");
             }
             else {
                 stopForeground(true);
@@ -179,7 +178,6 @@ public class TransmitLocationService extends Service implements LocationListener
     public void onProviderDisabled(String provider) {
         busLocDBRef.child("sharingLoc").setValue(false);
         busLocDBRef.child("speed").setValue(0);
-        busLocDBRef.child("currentSharerID").setValue("null");
     }
 
 }
