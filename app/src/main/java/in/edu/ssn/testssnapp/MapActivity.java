@@ -306,6 +306,18 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 if (dataSnapshot.getChildrenCount() == 4) {
+                    String latLongString = dataSnapshot.child("latLong").getValue(String.class), sharerId = dataSnapshot.child("currentSharerID").getValue(String.class);
+
+                    int speed = dataSnapshot.child("speed").getValue() != null ? (int) (dataSnapshot.child("speed").getValue(int.class) * 3.6 < 1 ? 0 : dataSnapshot.child("speed").getValue(int.class) * 3.6) : 0;
+                    boolean isSharingLoc = dataSnapshot.child("sharingLoc").getValue(Boolean.class) == null ? false : dataSnapshot.child("sharingLoc").getValue(Boolean.class);
+
+                    if (latLongString == null || latLongString.isEmpty() || sharerId == null || sharerId.isEmpty())
+                        return;
+
+                    int sep = latLongString.indexOf(',');
+                    LatLng currentlatLongs = new LatLng(sep == 1 ? 0 : Double.parseDouble(latLongString.substring(0, sep - 1)), sep == 1 ? 0 : Double.parseDouble(latLongString.substring(sep + 1)));
+                    currentBusObject = createBusObject(sharerId, currentlatLongs, speed, isSharingLoc);
+                    googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentlatLongs, 18f));
                     isDataReady = true;
                     if (!isMapLoaded) pd.show();
                     else {
@@ -313,18 +325,18 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                         listenForInfoChanges();
                         busLocRef.removeEventListener(routeExistslistener);
                         isDataReady = false;
-
                     }
-                } else if (mapRL.getVisibility() != View.GONE) {
+                } else if (mapRL.getVisibility() != View.GONE)
                     hideMapView();
-                }
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
                 hideMapView();
             }
-        };
+        }
+
+        ;
         busLocRef.addValueEventListener(routeExistslistener);
 
 
@@ -373,6 +385,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                         if (s != null && !s.equals("null") && !s.equals(userId)) {
                             Toast.makeText(getApplicationContext(), "Cannot start location sharing! There's already another volunteer sharing location for this bus!", Toast.LENGTH_LONG).show();
                         } else {
+                            if (novolunteerRL.getVisibility() == View.VISIBLE) showMapView();
                             checkForLocationPermissions();
                             switchToVolunteerNetworkCallback();
                         }
@@ -408,6 +421,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
             cmdStartVolunteering.setVisibility(View.GONE);
             cmdStopVolunteering.setVisibility(View.GONE);
         }
+
     }
 
     boolean userIsOnline() {
@@ -615,15 +629,18 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 if (dataSnapshot.exists() && dataSnapshot.getChildrenCount() == 4) {
                     String latLongString = dataSnapshot.child("latLong").getValue(String.class), sharerId = dataSnapshot.child("currentSharerID").getValue(String.class);
-
-                    int speed = dataSnapshot.child("speed").getValue() != null ? (int) (dataSnapshot.child("speed").getValue(int.class) * 3.6 < 1 ? 0 : dataSnapshot.child("speed").getValue(int.class) * 3.6) : 0;
-                    boolean isSharingLoc = dataSnapshot.child("sharingLoc").getValue(Boolean.class) == null ? false : dataSnapshot.child("sharingLoc").getValue(Boolean.class);
+                    int speed = dataSnapshot.child("speed").getValue() != null ? (int) (dataSnapshot.child("speed").getValue(Integer.class) * 3.6 < 1 ? 0 : dataSnapshot.child("speed").getValue(Integer.class) * 3.6) : 0;
+                    Boolean isSharingLoc = dataSnapshot.child("sharingLoc").getValue(Boolean.class) == null ? false : dataSnapshot.child("sharingLoc").getValue(Boolean.class);
 
                     if (latLongString == null || latLongString.isEmpty() || sharerId == null || sharerId.isEmpty())
                         return;
 
                     updateChangesToCurrentBusObject(latLongString, sharerId, speed, isSharingLoc);
                 } else if (currentBusObject != null) currentBusObject.setUserOnline(false);
+                else if (currentBusObject == null) {
+                    busLocRef.removeEventListener(this);
+                    busLocRef.addListenerForSingleValueEvent(routeExistslistener);
+                }
             }
 
             @Override
