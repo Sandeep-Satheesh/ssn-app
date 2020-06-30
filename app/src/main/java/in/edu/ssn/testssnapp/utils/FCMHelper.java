@@ -62,6 +62,11 @@ public class FCMHelper {
                 });
     }
 
+    public static void clearNotification(int id, Context context) {
+        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.cancel(id);
+    }
+
     public static void showNotification(String title, String message, Context context, Intent intent) {
         PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_ONE_SHOT);
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);

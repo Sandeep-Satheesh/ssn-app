@@ -7,7 +7,6 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.Resources;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -25,12 +24,13 @@ import com.google.firebase.database.FirebaseDatabase;
 
 import in.edu.ssn.testssnapp.MapActivity;
 import in.edu.ssn.testssnapp.R;
+import in.edu.ssn.testssnapp.utils.CommonUtils;
 import in.edu.ssn.testssnapp.utils.SharedPref;
 
 public class TransmitLocationService extends Service implements LocationListener {
     DatabaseReference busLocDBRef;
     LocationManager locationManager;
-    double SSNCEPolygon[]; //TODO: The polygon within which we have to check to stop service automatically; check note at end.
+    //    double SSNCEPolygon[]; //TODO: The polygon within which we have to check to stop service automatically; check note at end.
     public static final String ACTION_START_FOREGROUND_SERVICE = "ACTION_START_FOREGROUND_SERVICE";
     public static final String ACTION_STOP_FOREGROUND_SERVICE = "ACTION_STOP_FOREGROUND_SERVICE";
     String routeNo, latLongString, userID;
@@ -38,7 +38,6 @@ public class TransmitLocationService extends Service implements LocationListener
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-
         if (intent == null || intent.getAction() == null)
             return super.onStartCommand(intent, flags, startId);
 
@@ -46,14 +45,13 @@ public class TransmitLocationService extends Service implements LocationListener
         routeNo = intent.getStringExtra("routeNo");
         userID = SharedPref.getString(getApplicationContext(),"email");
         busLocDBRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo).getRef();
-
-
+        busLocDBRef.onDisconnect().removeValue();
         switch (intent.getAction()) {
             case ACTION_START_FOREGROUND_SERVICE:
                 busLocDBRef.child("currentSharerID").setValue(userID);
                 try {
                     if (locationManager != null) {
-                        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 20, this);
+                        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, this);
                         Location l = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
                         if (l != null) {
                             latLongString = l.getLatitude() + "," + l.getLongitude();
@@ -68,7 +66,7 @@ public class TransmitLocationService extends Service implements LocationListener
                 }
 
                 //Build the notification...
-                startForeground(1, prepareForegroundServiceNotification("Sharing your location", "Your location will be used to determine your bus' location.", this, new Intent(this, MapActivity.class).setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP).putExtra("routeNo",routeNo), getResources()));
+                startForeground(1, prepareForegroundServiceNotification("Sharing your location", "Your location will be used to determine your bus' location.", this, new Intent(this, MapActivity.class).setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP).putExtra("routeNo", routeNo)));
 //                Toast.makeText(getApplicationContext(), "Location Sharing started successfully.", Toast.LENGTH_SHORT).show();
 
                 break;
@@ -80,7 +78,7 @@ public class TransmitLocationService extends Service implements LocationListener
         return START_STICKY;
     }
 
-    public Notification prepareForegroundServiceNotification(String title, String message, Context context, Intent intent, Resources r) {
+    public static Notification prepareForegroundServiceNotification(String title, String message, Context context, Intent intent) {
         PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         Uri alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
@@ -119,6 +117,7 @@ public class TransmitLocationService extends Service implements LocationListener
 
     @Override
     public void onLocationChanged(Location location) {
+        if (CommonUtils.alerter(this)) return;
         busLocDBRef.child("currentSharerID").setValue(userID);
         busLocDBRef.child("sharingLoc").setValue(true);
         latLongString = location.getLatitude() + "," + location.getLongitude();
@@ -128,9 +127,9 @@ public class TransmitLocationService extends Service implements LocationListener
         busLocDBRef.child("sharingLoc").setValue(true);
     }
 
-
     @Override
     public void onStatusChanged(String provider, int status, Bundle extras) {
+        if (CommonUtils.alerter(this)) return;
         try {
             if (status == LocationProvider.AVAILABLE) {
                 busLocDBRef.child("currentSharerID").setValue(userID);
@@ -147,11 +146,6 @@ public class TransmitLocationService extends Service implements LocationListener
                 busLocDBRef.child("sharingLoc").setValue(false);
                 busLocDBRef.child("speed").setValue(0);
             }
-            else {
-                stopForeground(true);
-                stopSelf();
-            }
-
         } catch (SecurityException e) {
             e.printStackTrace();
         }
@@ -159,6 +153,7 @@ public class TransmitLocationService extends Service implements LocationListener
 
     @Override
     public void onProviderEnabled(String provider) {
+        if (CommonUtils.alerter(this)) return;
         busLocDBRef.child("currentSharerID").setValue(userID);
         busLocDBRef.child("sharingLoc").setValue(true);
         try {
@@ -176,6 +171,7 @@ public class TransmitLocationService extends Service implements LocationListener
 
     @Override
     public void onProviderDisabled(String provider) {
+        if (CommonUtils.alerter(this)) return;
         busLocDBRef.child("sharingLoc").setValue(false);
         busLocDBRef.child("speed").setValue(0);
     }
