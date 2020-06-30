@@ -1,5 +1,6 @@
 package in.edu.ssn.testssnapp.services;
 
+import android.Manifest;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -7,6 +8,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -19,6 +21,15 @@ import android.os.IBinder;
 
 import androidx.annotation.Nullable;
 
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.PendingResult;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.common.api.Status;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.LocationSettingsRequest;
+import com.google.android.gms.location.LocationSettingsResult;
+import com.google.android.gms.location.LocationSettingsStatusCodes;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
@@ -41,9 +52,11 @@ public class TransmitLocationService extends Service implements LocationListener
         if (intent == null || intent.getAction() == null)
             return super.onStartCommand(intent, flags, startId);
 
+        checkForLocationPermissions();
+
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         routeNo = intent.getStringExtra("routeNo");
-        userID = SharedPref.getString(getApplicationContext(),"email");
+        userID = SharedPref.getString(getApplicationContext(), "email");
         busLocDBRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo).getRef();
         busLocDBRef.onDisconnect().removeValue();
         switch (intent.getAction()) {
@@ -176,6 +189,45 @@ public class TransmitLocationService extends Service implements LocationListener
         busLocDBRef.child("speed").setValue(0);
     }
 
+    //Permission request (worst-case check)
+    private void checkForLocationPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                stopSelf();
+            } else
+                checkForGPSEnabled();
+        } else
+            checkForGPSEnabled();
+    }
+
+
+    //************************Check whether gps is enabled or not *********************//
+
+    private void checkForGPSEnabled() {
+        GoogleApiClient googleApiClient = new GoogleApiClient.Builder(getApplicationContext())
+                .addApi(LocationServices.API).build();
+        googleApiClient.connect();
+
+        LocationRequest locationRequest = LocationRequest.create();
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        locationRequest.setInterval(200);
+        locationRequest.setFastestInterval(100);
+
+        LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder().addLocationRequest(locationRequest);
+        builder.setAlwaysShow(true);
+
+        PendingResult<LocationSettingsResult> result = LocationServices.SettingsApi.checkLocationSettings(googleApiClient, builder.build());
+        result.setResultCallback(new ResultCallback<LocationSettingsResult>() {
+            @Override
+            public void onResult(LocationSettingsResult result) {
+                final Status status = result.getStatus();
+                if (status.getStatusCode() != LocationSettingsStatusCodes.SUCCESS) {
+                    stopForeground(true);
+                    stopSelf();
+                }
+            }
+        });
+    }
 }
 
 /*TODO: Convert this code to java and put it in the service, as a function, to check if a point lies within a polygon
