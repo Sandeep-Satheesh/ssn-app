@@ -604,7 +604,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                     String latLongString = dataSnapshot.child("latLong").getValue(String.class), sharerId = dataSnapshot.child("currentSharerID").getValue(String.class);
 
                     int speed = dataSnapshot.child("speed").getValue() != null ? (int) (dataSnapshot.child("speed").getValue(int.class) * 3.6 < 1 ? 0 : dataSnapshot.child("speed").getValue(int.class) * 3.6) : 0;
-                    boolean isSharingLoc = dataSnapshot.child("sharingLoc").getValue(boolean.class) == null ? false : dataSnapshot.child("sharingLoc").getValue(boolean.class);
+                    boolean isSharingLoc = dataSnapshot.child("sharingLoc").getValue(Boolean.class) == null ? false : dataSnapshot.child("sharingLoc").getValue(Boolean.class);
 
                     if (latLongString == null || latLongString.isEmpty() || sharerId == null || sharerId.isEmpty())
                         return;
@@ -637,7 +637,8 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
             if (!Objects.equals(sharerId, currentBusObject.getCurrentVolunteerId()))
                 currentBusObject.setCurrentVolunteerId(sharerId);
 
-            currentBusObject.setUserOnline(isSharingLoc);
+            else if (currentBusObject.isSharerOnline() != isSharingLoc)
+                currentBusObject.setUserOnline(isSharingLoc);
         } else currentBusObject.setUserOnline(false);
     }
 
@@ -668,7 +669,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
 
             @Override
             public void onOnlineStatusChanged(String r, boolean isOnline) {
-                if (isOnline == busObject.isSharerOnline()) return;
                 AlphaAnimation fadeOut = new AlphaAnimation(1, 0), fadeIn = new AlphaAnimation(0, 1);
                 fadeOut.setDuration(500);
                 fadeOut.setAnimationListener(new Animation.AnimationListener() {
