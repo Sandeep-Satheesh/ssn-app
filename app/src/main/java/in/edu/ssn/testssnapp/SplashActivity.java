@@ -20,7 +20,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.target.SimpleTarget;
 import com.bumptech.glide.request.transition.Transition;
-//import com.crashlytics.android.Crashlytics;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
@@ -52,11 +51,13 @@ import in.edu.ssn.testssnapp.onboarding.OnboardingActivity;
 import in.edu.ssn.testssnapp.utils.CommonUtils;
 import in.edu.ssn.testssnapp.utils.Constants;
 import in.edu.ssn.testssnapp.utils.SharedPref;
-//import io.fabric.sdk.android.Fabric;
 import pl.droidsonroids.gif.AnimationListener;
 import pl.droidsonroids.gif.GifDrawable;
 import pl.droidsonroids.gif.GifImageView;
 import spencerstudios.com.bungeelib.Bungee;
+
+//import com.crashlytics.android.Crashlytics;
+//import io.fabric.sdk.android.Fabric;
 
 public class SplashActivity extends AppCompatActivity {
 
@@ -74,7 +75,6 @@ public class SplashActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
-
         CommonUtils.isDebug();
 
         initUI();
