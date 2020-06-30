@@ -235,7 +235,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                         total[0] = dataSnapshot.getChildrenCount();
                         total[1]++;
-                        if (total[0] < 4 && total[1] < 10) {
+                        if (total[0] < 4 || total[1] < 10) {
                             buslocref.addListenerForSingleValueEvent(this);
                             return;
                         }
@@ -263,12 +263,17 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                     setUserOnlineStatus(false);
                 }
                 if (isMyServiceRunning(TransmitLocationService.class))
-                    new CountDownTimer(9000, 1000) {
+                    new CountDownTimer(30000, 100) {
 
                         @Override
                         public void onTick(long millisUntilFinished) {
+                            if (millisUntilFinished / 1000.0 != (int) millisUntilFinished / 1000.0)
+                                return;
+                            int secondsLeft = (int) (millisUntilFinished / 1000.0);
+                            secondsLeft++;
                             if (CommonUtils.alerter(MapActivity.this)) {
-                                showNotification(2, "Your internet connection was interrupted.", "Please reconnect in " + (1 + millisUntilFinished / 1000) + (millisUntilFinished == 1000 ? " second." : " seconds."), MapActivity.this, new Intent(MapActivity.this, MapActivity.class));
+                                String msg = "Please reconnect in " + secondsLeft + (secondsLeft == 1 ? " second." : " seconds.");
+                                showNotification(2, "Your internet connection was interrupted.", msg, MapActivity.this, new Intent(MapActivity.this, MapActivity.class));
                             } else {
                                 FCMHelper.clearNotification(2, MapActivity.this);
                                 cancel();
@@ -363,8 +368,11 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         //*****************************Volunteer Section ****************************//
         if (isBusVolunteer) {
             if (SharedPref.getBoolean(getApplicationContext(), "stopbutton"))
-                if (isMyServiceRunning(TransmitLocationService.class)) disableControls();
-                else {
+                if (isMyServiceRunning(TransmitLocationService.class)) {
+                    disableControls();
+                    if (novolunteerRL.getVisibility() == View.VISIBLE)
+                        tvNoVolunteer.setText(R.string.no_location_value);
+                } else {
                     Toast.makeText(getApplicationContext(), R.string.improper_shutdown, Toast.LENGTH_LONG).show();
                     SharedPref.putBoolean(getApplicationContext(), "stopbutton", false);
                     isBusOnlineIV.setImageResource(R.drawable.circle_busvolunteer_offline);
