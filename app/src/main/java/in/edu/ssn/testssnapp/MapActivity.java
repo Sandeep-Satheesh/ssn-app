@@ -97,6 +97,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        unregisterNetworkCallbacks();
         super.onCreate(savedInstanceState);
         if (CommonUtils.alerter(this)) {
             startActivity(new Intent(this, NoNetworkActivity.class).putExtra("key", "null"));
@@ -235,7 +236,8 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                         total[0] = dataSnapshot.getChildrenCount();
                         total[1]++;
-                        if (total[0] < 4 || total[1] < 10) {
+                        if (total[0] < 4 && total[1] < 30) {
+                            FirebaseDatabase.getInstance().purgeOutstandingWrites();
                             buslocref.addListenerForSingleValueEvent(this);
                             return;
                         }
@@ -244,6 +246,9 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                                 startLocationTransmission();
                         } else if (dataSnapshot.child("currentSharerID").getValue(String.class) == null || Objects.equals(dataSnapshot.child("currentSharerID").getValue(String.class), "null")) {
                             startLocationTransmission();
+                        }else {
+                            SharedPref.putBoolean(getApplicationContext(),"stopbutton",false);
+                            SharedPref.putString(getApplicationContext(),"routeNo","");
                         }
                     }
 
@@ -288,6 +293,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                     }.start();
             }
         };
+        unregisterNetworkCallbacks();
         if (isSharingLoc || isMyServiceRunning(TransmitLocationService.class))
             connectivityManager.registerNetworkCallback(networkRequest, volunteerNetworkCallback);
         else connectivityManager.registerNetworkCallback(networkRequest, userNetworkCallback);
@@ -324,7 +330,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
             onBackPressed();
         });
         busLocRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo);
-        busLocRef.onDisconnect().removeValue();
+
         DatabaseReference.goOnline();
         routeExistslistener = new ValueEventListener() {
             @Override

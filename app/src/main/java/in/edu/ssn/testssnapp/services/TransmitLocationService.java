@@ -58,7 +58,7 @@ public class TransmitLocationService extends Service implements LocationListener
         routeNo = intent.getStringExtra("routeNo");
         userID = SharedPref.getString(getApplicationContext(), "email");
         busLocDBRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo).getRef();
-        busLocDBRef.onDisconnect().removeValue();
+
         switch (intent.getAction()) {
             case ACTION_START_FOREGROUND_SERVICE:
                 busLocDBRef.child("currentSharerID").setValue(userID);
@@ -166,7 +166,7 @@ public class TransmitLocationService extends Service implements LocationListener
 
     @Override
     public void onProviderEnabled(String provider) {
-        if (CommonUtils.alerter(this)) return;
+          if (CommonUtils.alerter(this)) return;
         busLocDBRef.child("currentSharerID").setValue(userID);
         busLocDBRef.child("sharingLoc").setValue(true);
         try {
