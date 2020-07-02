@@ -30,13 +30,13 @@ import in.edu.ssn.testssnapp.utils.SharedPref;
 public class TransmitLocationService extends Service implements LocationListener {
     DatabaseReference busLocDBRef;
     LocationManager locationManager;
+    volatile boolean suspendFlag = false;
     static Notification.Builder nbuilder;
     static NotificationManager notificationManager;
     //    double SSNCEPolygon[]; //TODO: The polygon within which we have to check to stop service automatically; check note at end.
     public static final String ACTION_START_FOREGROUND_SERVICE = "ACTION_START_FOREGROUND_SERVICE";
-    public static final String ACTION_SUSPEND_FOREGROUND_SERVICE = "ACTION_SUSPEND_FOREGROUND_SERVICE";
-    public static final String ACTION_RESTART_FOREGROUND_SERVICE = "ACTION_RESTART_FOREGROUND_SERVICE";
     public static final String ACTION_STOP_FOREGROUND_SERVICE = "ACTION_STOP_FOREGROUND_SERVICE";
+    public static final String ACTION_CHANGE_NOTIFICATION_MESSAGE = "ACTION_CHANGE_NOTIFICATION_MESSAGE";
     String routeNo, latLongString, userID;
     int speed;
 
@@ -47,6 +47,7 @@ public class TransmitLocationService extends Service implements LocationListener
 
         locationManager = (LocationManager) this.getSystemService(LOCATION_SERVICE);
         routeNo = intent.getStringExtra("routeNo");
+        suspendFlag = intent.getBooleanExtra("suspendFlag", true);
         userID = SharedPref.getString(getApplicationContext(), "email");
         busLocDBRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo).getRef();
         busLocDBRef.onDisconnect().removeValue();
@@ -76,11 +77,9 @@ public class TransmitLocationService extends Service implements LocationListener
 //                Toast.makeText(getApplicationContext(), "Location Sharing started successfully.", Toast.LENGTH_SHORT).show();
 
                 break;
-            case ACTION_SUSPEND_FOREGROUND_SERVICE:
-                startForeground(1, prepareForegroundServiceNotification("Location Sharing suspended", "We'll auto-restart location sharing once you're back online in some time.", this, new Intent(this, MapActivity.class).setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP).putExtra("routeNo", routeNo)));
-                break;
-            case ACTION_RESTART_FOREGROUND_SERVICE:
-                startForeground(1, prepareForegroundServiceNotification("Sharing your location", "Your location will be used to determine your bus' location.", this, new Intent(this, MapActivity.class).setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP).putExtra("routeNo", routeNo)));
+            case ACTION_CHANGE_NOTIFICATION_MESSAGE:
+                String messageTitle = intent.getStringExtra("messageTitle"), messageContent = intent.getStringExtra("messageContent");
+                startForeground(1, prepareForegroundServiceNotification(messageTitle, messageContent, this, new Intent(this, MapActivity.class).setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP).putExtra("routeNo", routeNo)));
                 break;
             case ACTION_STOP_FOREGROUND_SERVICE:
                 locationManager.removeUpdates(this);
@@ -129,7 +128,7 @@ public class TransmitLocationService extends Service implements LocationListener
 
     @Override
     public void onLocationChanged(Location location) {
-        if (CommonUtils.alerter(this)) return;
+        if (CommonUtils.alerter(this) || suspendFlag) return;
         busLocDBRef.child("currentSharerID").setValue(userID);
         busLocDBRef.child("sharingLoc").setValue(true);
         latLongString = location.getLatitude() + "," + location.getLongitude();
@@ -141,7 +140,7 @@ public class TransmitLocationService extends Service implements LocationListener
 
     @Override
     public void onStatusChanged(String provider, int status, Bundle extras) {
-        if (CommonUtils.alerter(this)) return;
+        if (CommonUtils.alerter(this) || suspendFlag) return;
         try {
             if (status == LocationProvider.AVAILABLE) {
                 busLocDBRef.child("currentSharerID").setValue(userID);
@@ -165,7 +164,7 @@ public class TransmitLocationService extends Service implements LocationListener
 
     @Override
     public void onProviderEnabled(String provider) {
-          if (CommonUtils.alerter(this)) return;
+        if (CommonUtils.alerter(this) || suspendFlag) return;
         busLocDBRef.child("currentSharerID").setValue(userID);
         busLocDBRef.child("sharingLoc").setValue(true);
         try {
@@ -183,7 +182,7 @@ public class TransmitLocationService extends Service implements LocationListener
 
     @Override
     public void onProviderDisabled(String provider) {
-        if (CommonUtils.alerter(this)) return;
+        if (CommonUtils.alerter(this) || suspendFlag) return;
         busLocDBRef.child("sharingLoc").setValue(false);
         busLocDBRef.child("speed").setValue(0);
     }

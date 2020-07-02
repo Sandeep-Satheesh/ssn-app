@@ -29,11 +29,14 @@ import androidx.core.content.res.ResourcesCompat;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.instacart.library.truetime.TrueTime;
 
+import org.apache.commons.net.ntp.NTPUDPClient;
+import org.apache.commons.net.ntp.TimeInfo;
 import org.jsoup.Jsoup;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -615,6 +618,7 @@ public class CommonUtils {
     public static class getInternetTime extends AsyncTask<Void, Void, Void> {
         OnTimeFetchedListener listener;
         Context c;
+        long internetTime = 0;
 
         public getInternetTime(Context c, OnTimeFetchedListener listener) {
             this.c = c;
@@ -630,15 +634,26 @@ public class CommonUtils {
         @Override
         protected final Void doInBackground(Void... voids) {
             try {
-                TrueTime.build()
-                        .withSharedPreferences(c)
-                        .withNtpHost("time.google.com")
-                        .withLoggingEnabled(false)
-                        .withConnectionTimeout(31_428)
-                        .initialize();
-            } catch (IOException e) {
+                NTPUDPClient timeClient = new NTPUDPClient();
+                timeClient.setDefaultTimeout(3000);
+                InetAddress inetAddress = null;
+                boolean is_locale_date = false;
+                try {
+                    inetAddress = InetAddress.getByName("time.google.com");
+                    TimeInfo timeInfo = null;
+                    timeInfo = timeClient.getTime(inetAddress);
+                    long serverTime = timeInfo.getMessage().getTransmitTimeStamp().getTime();
+                    internetTime = serverTime;
+
+                } catch (UnknownHostException e) {
+                    e.printStackTrace();
+                    Log.e("UnknownHostException: ", e.getMessage());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    Log.e("IOException: ", e.getMessage());
+                }
+            } catch (Exception e) {
                 e.printStackTrace();
-                Log.d("getInternetTime", "Exception when trying to get TrueTime", e);
             }
             return null;
         }
@@ -646,11 +661,11 @@ public class CommonUtils {
         @Override
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
-            if (listener != null) listener.onTimeFetched();
+            if (listener != null) listener.onTimeFetched(internetTime);
         }
 
         public interface OnTimeFetchedListener {
-            void onTimeFetched();
+            void onTimeFetched(long internetTime);
         }
     }
 }

@@ -76,7 +76,7 @@ public class SplashActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
         CommonUtils.isDebug();
-
+        FirebaseDatabase.getInstance().setPersistenceEnabled(false);
         initUI();
         checkIsBlocked();
         new checkForceUpdate().execute();

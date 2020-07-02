@@ -18,10 +18,9 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.instacart.library.truetime.TrueTime;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.Objects;
 
 import in.edu.ssn.testssnapp.MapActivity;
@@ -32,8 +31,8 @@ import in.edu.ssn.testssnapp.utils.SharedPref;
 
 public class BusRouteAdapter extends RecyclerView.Adapter<BusRouteAdapter.BusRouteViewHolder> {
 
-    boolean darkMode = false;
-    boolean isDayScholar = false;
+    boolean darkMode;
+    boolean isDayScholar;
     private ArrayList<BusRoute> busRoutes;
     private Context context;
 
@@ -70,30 +69,24 @@ public class BusRouteAdapter extends RecyclerView.Adapter<BusRouteAdapter.BusRou
                     Toast.makeText(context, "You're offline! Please connect to the internet to continue!", Toast.LENGTH_SHORT).show();
                 } else if (isDayScholar) {
                     DatabaseReference timeRef = FirebaseDatabase.getInstance().getReference("Bus Locations");
-                    Toast.makeText(context, "Loading, please wait...", Toast.LENGTH_LONG).show();
+                    Toast.makeText(context, "Attempting to fetch internet time, please wait...", Toast.LENGTH_LONG).show();
                     timeRef.addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
                         public void onDataChange(@NonNull DataSnapshot snapshot) {
-                            new CommonUtils.getInternetTime(context, () -> {
-                                Date currentTime = null;
-                                try {
-                                    currentTime = TrueTime.now(); //currentTime example: "Thu Jul 02 16:26:49 GMT+05:30 2020"
-                                } catch (Exception e) {
-                                    Toast.makeText(context, "An internal error occurred! Please try again!", Toast.LENGTH_LONG).show();
-                                }
-                                if (currentTime == null) return;
-                                String s = currentTime.toString();
+                            new CommonUtils.getInternetTime(context, (trueTime) -> {
                                 /*Long startTime = snapshot.child("startTime").getValue(Long.class);
                                 Long endTime = snapshot.child("endTime").getValue(Long.class);*/
-                                Boolean masterEnable = snapshot.child("masterEnable").getValue(Boolean.class);
-                                if (!TrueTime.isInitialized()) {
-                                    Toast.makeText(context, "Cannot start the bus tracking feature! Unable to verify the correct internet time now!", Toast.LENGTH_LONG).show();
+                                if (trueTime == 0) {
+                                    Toast.makeText(context, "There was an error fetching the internet time! Access denied!", Toast.LENGTH_LONG).show();
                                     return;
                                 }
+                                String s = new SimpleDateFormat("u hh:mm:ss").format(trueTime);
+
+                                Boolean masterEnable = snapshot.child("masterEnable").getValue(Boolean.class);
                                 if (masterEnable == null || !masterEnable) {// || startTime == null || endTime == null) {
                                     Toast.makeText(context, "Cannot start the bus tracking feature! Master switch is off!", Toast.LENGTH_LONG).show();
                                     return;
-                                } else if (Objects.equals(s.substring(0, 3), "Sun")) {
+                                } else if (Objects.equals(s.charAt(0), '7')) {
                                     Toast.makeText(context, "Cannot start bus tracking feature on Sundays!", Toast.LENGTH_LONG).show();
                                     return;
                                 }
@@ -105,6 +98,7 @@ public class BusRouteAdapter extends RecyclerView.Adapter<BusRouteAdapter.BusRou
                                     Toast.makeText(context, "Cannot use the bus tracking feature beyond " + SimpleDateFormat.getTimeInstance().format(endTime) + "!", Toast.LENGTH_LONG).show();
                                     return;
                                 } */
+                                Toast.makeText(context, "Access granted!", Toast.LENGTH_SHORT).show();
                                 Intent intent = new Intent(context, MapActivity.class);
                                 intent.putExtra("routeNo", Route);
                                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
