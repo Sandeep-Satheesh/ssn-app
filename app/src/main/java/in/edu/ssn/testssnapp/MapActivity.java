@@ -15,6 +15,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
+import android.location.LocationManager;
 import android.media.RingtoneManager;
 import android.net.ConnectivityManager;
 import android.net.Network;
@@ -97,7 +98,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        unregisterNetworkCallbacks();
         super.onCreate(savedInstanceState);
         if (CommonUtils.alerter(this)) {
             startActivity(new Intent(this, NoNetworkActivity.class).putExtra("key", "null"));
@@ -218,7 +218,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                 super.onLost(network);
                 if (userIsOnline()) {
                     DatabaseReference.goOffline();
-                    currentBusObject.setUserOnline(false);
+                    if (currentBusObject != null) currentBusObject.setUserOnline(false);
                     setUserOnlineStatus(false);
                 }
             }
@@ -229,6 +229,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                 super.onAvailable(network);
                 if (SharedPref.getString(getApplicationContext(), "routeNo") == null || SharedPref.getString(getApplicationContext(), "routeNo").isEmpty() || userIsOnline())
                     return;
+                FCMHelper.clearNotification(2, MapActivity.this);
                 DatabaseReference buslocref = FirebaseDatabase.getInstance().getReference("Bus Locations").child(SharedPref.getString(getApplicationContext(), "routeNo"));
                 final long[] total = {0, 0};
                 buslocref.addListenerForSingleValueEvent(new ValueEventListener() {
@@ -236,19 +237,43 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                         total[0] = dataSnapshot.getChildrenCount();
                         total[1]++;
-                        if (total[0] < 4 && total[1] < 30) {
-                            FirebaseDatabase.getInstance().purgeOutstandingWrites();
+                        if (total[1] < 4) {
+                            buslocref.removeEventListener(this);
                             buslocref.addListenerForSingleValueEvent(this);
                             return;
                         }
-                        if (Objects.equals(SharedPref.getString(getApplicationContext(), "email"), dataSnapshot.child("currentSharerID").getValue(String.class))) {
-                            if (!isMyServiceRunning(TransmitLocationService.class))
-                                startLocationTransmission();
-                        } else if (dataSnapshot.child("currentSharerID").getValue(String.class) == null || Objects.equals(dataSnapshot.child("currentSharerID").getValue(String.class), "null")) {
-                            startLocationTransmission();
-                        }else {
-                            SharedPref.putBoolean(getApplicationContext(),"stopbutton",false);
-                            SharedPref.putString(getApplicationContext(),"routeNo","");
+                        //if no sharer, or same sharer id, restart service.
+                        if (Objects.equals(SharedPref.getString(getApplicationContext(), "email"), dataSnapshot.child("currentSharerID").getValue(String.class))
+                                || (dataSnapshot.child("currentSharerID").getValue(String.class) == null || Objects.equals(dataSnapshot.child("currentSharerID").getValue(String.class), "null"))) {
+
+                            LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                                    if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                                        FCMHelper.clearNotification(1, MapActivity.this);
+                                        restartLocationTransmission();
+                                    } else {
+                                        Toast.makeText(getApplicationContext(), "Your GPS is not enabled! Cannot auto-restart location sharing! The background service will now stop.", Toast.LENGTH_SHORT).show();
+                                        unregisterNetworkCallbacks();
+                                        stopLocationTransmission();
+                                    }
+                                } else {
+                                    Toast.makeText(getApplicationContext(), "Location permissions have been disabled! Cannot auto-restart location sharing! The background service will now stop.", Toast.LENGTH_SHORT).show();
+                                    unregisterNetworkCallbacks();
+                                    stopLocationTransmission();
+                                }
+                            } else if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                                FCMHelper.clearNotification(1, MapActivity.this);
+                                restartLocationTransmission();
+                            } else {
+                                Toast.makeText(getApplicationContext(), "Your GPS is not enabled! Cannot auto-restart location sharing! The background service will now stop.", Toast.LENGTH_SHORT).show();
+                                unregisterNetworkCallbacks();
+                                stopLocationTransmission();
+                            }
+                        } else {
+                            showNotification(2, "1", "The background service has been stopped", "Another volunteer has taken over since your last disconnection! Thank you for your services!", MapActivity.this, null);
+                            unregisterNetworkCallbacks();
+                            stopLocationTransmission();
                         }
                     }
 
@@ -256,7 +281,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                     public void onCancelled(@NonNull DatabaseError databaseError) {
                     }
                 });
-                setUserOnlineStatus(false);
+                setUserOnlineStatus(true);
             }
 
             @Override
@@ -264,21 +289,23 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                 super.onLost(network);
                 if (userIsOnline()) {
                     DatabaseReference.goOffline();
-                    currentBusObject.setUserOnline(false);
+                    if (currentBusObject != null) currentBusObject.setUserOnline(false);
                     setUserOnlineStatus(false);
                 }
+                final long[] i = {0};
                 if (isMyServiceRunning(TransmitLocationService.class))
                     new CountDownTimer(30000, 100) {
 
                         @Override
                         public void onTick(long millisUntilFinished) {
-                            if (millisUntilFinished / 1000.0 != (int) millisUntilFinished / 1000.0)
-                                return;
-                            int secondsLeft = (int) (millisUntilFinished / 1000.0);
-                            secondsLeft++;
+                            if (!isMyServiceRunning(TransmitLocationService.class)) {
+                                cancel();
+                            }
+                            i[0]++;
+                            if (i[0] % 10 != 0) return;
                             if (CommonUtils.alerter(MapActivity.this)) {
-                                String msg = "Please reconnect in " + secondsLeft + (secondsLeft == 1 ? " second." : " seconds.");
-                                showNotification(2, "Your internet connection was interrupted.", msg, MapActivity.this, new Intent(MapActivity.this, MapActivity.class));
+                                String msg = "Please reconnect in " + (30 - (i[0] / 10)) + ((30 - (i[0] / 10)) == 1 ? " second." : " seconds.");
+                                showNotification(2, "2", "Your internet connection was interrupted.", msg, MapActivity.this, new Intent(MapActivity.this, MapActivity.class));
                             } else {
                                 FCMHelper.clearNotification(2, MapActivity.this);
                                 cancel();
@@ -287,7 +314,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
 
                         @Override
                         public void onFinish() {
-                            stopLocationTransmission();
+                            suspendLocationTransmission();
                             FCMHelper.clearNotification(2, MapActivity.this);
                         }
                     }.start();
@@ -358,16 +385,16 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                     currentBusObject = createBusObject(sharerId, currentlatLongs, speed, isSharingLoc);
                     googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentlatLongs, 18f));
                     isDataReady = true;
-                }
+                } else if (isMyServiceRunning(TransmitLocationService.class))
+                    tvNoVolunteer.setText(R.string.no_location_value);
+                else tvNoVolunteer.setText(R.string.would_you_like_to_volunteer);
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
                 hideMapView();
             }
-        }
-
-        ;
+        };
         busLocRef.addValueEventListener(routeExistslistener);
 
 
@@ -398,31 +425,13 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
             else
                 enableControls();
 
-            concurrentVolunteerListener = new ValueEventListener() {
-                @Override
-                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                    String s = dataSnapshot.child("currentSharerID").getValue(String.class);
-                    if (isSharingLoc) {
-                        if (s != null && !s.equals("null") && !s.equals(userId)) {
-                            busLocRef.removeValue();
-                            Toast.makeText(getApplicationContext(), R.string.cannot_start_loc_sharing, Toast.LENGTH_LONG).show();
-                            stopLocationTransmission();
-                        }
-                    }
-                }
-
-                @Override
-                public void onCancelled(@NonNull DatabaseError databaseError) {
-
-                }
-            };
-
 
             cmdStartVolunteering.setOnClickListener(v -> {
                 if (CommonUtils.alerter(MapActivity.this)) {
                     Toast.makeText(getApplicationContext(), "No network connection!", Toast.LENGTH_SHORT).show();
                     return;
                 }
+                //TODO: implement getInternetTime() here.
                 busLocRef.addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -432,7 +441,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                             Toast.makeText(getApplicationContext(), R.string.cannot_start_loc_sharing, Toast.LENGTH_LONG).show();
                         } else {
                             if (novolunteerRL.getVisibility() == View.VISIBLE) showMapView();
-                            checkForLocationPermissions();
+                            attemptToGetLocationPermissions();
                             switchToVolunteerNetworkCallback();
                         }
                     }
@@ -442,6 +451,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
 
                     }
                 });
+
             });
 
             cmdStopVolunteering.setOnClickListener(v -> YesNoDialogBuilder.createDialog(
@@ -452,7 +462,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                     false,
                     (dialog, which) -> {
                         SharedPref.putBoolean(getApplicationContext(), "stopbutton", false);
-                        SharedPref.putString(getApplicationContext(), "routeno", "");
+                        SharedPref.putString(getApplicationContext(), "routeNo", "");
                         stopLocationTransmission();
                         switchToUserNetworkCallback();
                         busLocRef.removeValue();
@@ -481,9 +491,32 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
     //***********Location Transmission and to check whether service is running or not ********//
 
     private void startLocationTransmission() {
+        ValueEventListener dummy = new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                String s = dataSnapshot.child("currentSharerID").getValue(String.class);
+                if (isSharingLoc) {
+                    if (s != null && !s.equals("null") && !s.equals(userId)) {
+                        busLocRef.removeValue();
+                        Toast.makeText(getApplicationContext(), R.string.cannot_start_loc_sharing, Toast.LENGTH_LONG).show();
+                        stopLocationTransmission();
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        };
+        concurrentVolunteerListener = dummy;
         SharedPref.putBoolean(getApplicationContext(), "stopbutton", true);
-        SharedPref.putString(getApplicationContext(), "routeno", routeNo);
-        busLocRef.addValueEventListener(concurrentVolunteerListener);
+        if (routeNo != null)
+            SharedPref.putString(getApplicationContext(), "routeNo", routeNo);
+        else routeNo = SharedPref.getString(getApplicationContext(), "routeNo");
+        DatabaseReference dummyDbRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo);
+        busLocRef = dummyDbRef;
+        busLocRef.addValueEventListener(dummy);
         Intent i = new Intent(getApplicationContext(), TransmitLocationService.class);
         i.setAction(TransmitLocationService.ACTION_START_FOREGROUND_SERVICE);
         i.putExtra("routeNo", routeNo);
@@ -495,6 +528,28 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                 disableControls();
             }
         });
+    }
+
+    private void restartLocationTransmission() {
+        SharedPref.putBoolean(getApplicationContext(), "stopbutton", true);
+        if (routeNo != null)
+            SharedPref.putString(getApplicationContext(), "routeNo", routeNo);
+        else routeNo = SharedPref.getString(getApplicationContext(), "routeNo");
+
+        Intent i = new Intent(this, TransmitLocationService.class);
+        i.setAction(TransmitLocationService.ACTION_RESTART_FOREGROUND_SERVICE);
+        i.putExtra("routeNo", routeNo);
+        startService(i);
+        isSharingLoc = true;
+    }
+
+    private void suspendLocationTransmission() {
+        Intent i = new Intent(getApplicationContext(), TransmitLocationService.class);
+        i.setAction(TransmitLocationService.ACTION_SUSPEND_FOREGROUND_SERVICE);
+        i.putExtra("routeNo", routeNo);
+        i.putExtra("userID", userId);
+        startService(i);
+        isSharingLoc = false;
     }
 
     private void stopLocationTransmission() {
@@ -512,7 +567,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                 enableControls();
             }
         });
-        SharedPref.putString(getApplicationContext(), "routeno", routeNo);
+        SharedPref.putString(getApplicationContext(), "routeNo", "");
         SharedPref.putBoolean(getApplicationContext(), "stopbutton", false);
         isSharingLoc = false;
     }
@@ -529,14 +584,14 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
 
     //*****************************Check whether location permission is granted****************************//
 
-    private void checkForLocationPermissions() {
+    private void attemptToGetLocationPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 2);
             } else
-                checkIfGPSIsEnabled();
+                attemptToEnableGPS();
         } else
-            checkIfGPSIsEnabled();
+            attemptToEnableGPS();
     }
 
     @Override
@@ -544,7 +599,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (grantResults.length == 0) return;
         if (requestCode == 2 && grantResults[0] == PackageManager.PERMISSION_GRANTED)
-            checkIfGPSIsEnabled();
+            attemptToEnableGPS();
         else {
             Toast.makeText(getApplicationContext(), "Location permission denied! Cannot start location sharing!", Toast.LENGTH_LONG).show();
         }
@@ -553,7 +608,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
 
     //************************Check whether gps is enabled or not *********************//
 
-    private void checkIfGPSIsEnabled() {
+    private void attemptToEnableGPS() {
         GoogleApiClient googleApiClient = new GoogleApiClient.Builder(getApplicationContext())
                 .addApi(LocationServices.API).build();
         googleApiClient.connect();
@@ -666,7 +721,8 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         busTrackingMap.onStart();
         isMapLoaded = true;
         pd.dismiss();
-        if (initialSnapshot == null) hideMapView();
+        if (initialSnapshot == null)
+            hideMapView();
     }
 
     private void listenForInfoChanges() {
@@ -813,7 +869,10 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         mapRL.setVisibility(View.GONE);
         novolunteerRL.setVisibility(View.VISIBLE);
         if (isBusVolunteer)
-            tvNoVolunteer.setText(R.string.would_you_like_to_volunteer);
+            if (isMyServiceRunning(TransmitLocationService.class))
+                tvNoVolunteer.setText(R.string.no_location_value);
+            else tvNoVolunteer.setText(R.string.would_you_like_to_volunteer);
+        else tvNoVolunteer.setText(R.string.no_volunteer_available);
     }
 
     private void initMapView(Bundle b) { //map load
@@ -893,18 +952,18 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         finish();
     }
 
-    public static void showNotification(int id, String title, String message, Context context, Intent intent) {
+    public static void showNotification(int id, String channelIdString, String title, String message, Context context, Intent intent) {
         PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_ONE_SHOT);
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         Uri alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALL);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            notificationManager.createNotificationChannel(new NotificationChannel("2", "general", NotificationManager.IMPORTANCE_HIGH));
-            Notification.Builder nbuilder = new Notification.Builder(context, "2")
+            notificationManager.createNotificationChannel(new NotificationChannel(channelIdString, "general", NotificationManager.IMPORTANCE_HIGH));
+            Notification.Builder nbuilder = new Notification.Builder(context, channelIdString)
                     .setContentTitle(title)
                     .setSmallIcon(R.drawable.ssn_logo)
                     .setStyle(new Notification.BigTextStyle().bigText(message))
-                    .setChannelId("2")
+                    .setChannelId(channelIdString)
                     .setAutoCancel(true)
                     .setSound(alarmSound)
                     .setContentIntent(pendingIntent);

@@ -9,7 +9,7 @@ public class Constants {
 
     //TODO: change to 'false' when releasing the app
     public static final Boolean debug_mode = true;
-    public static final String GMAPS_TEST_API_KEY = "AIzaSyDtTxdVUXBdft04RrY8A0h0quK888AO2J0";
+    public static final String GMAPS_TEST_API_KEY = "AIzaSyBDJgS-zuBIOit05B-4aHO-mTkUhc0MpaI";
     public static final String PDF_URL = "pdf_url";
     public static final int BUS_FLEET_SIZE = 45;
     // sqlCipher database related function

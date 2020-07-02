@@ -1,29 +1,21 @@
 {
   "project_info": {
-    "project_number": "565952577608",
-    "firebase_url": "https://testssnceapp-38ee9.firebaseio.com",
-    "project_id": "testssnceapp-38ee9",
-    "storage_bucket": "testssnceapp-38ee9.appspot.com"
+    "project_number": "42894238480",
+    "firebase_url": "https://testssnapp-1.firebaseio.com",
+    "project_id": "testssnapp-1",
+    "storage_bucket": "testssnapp-1.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:565952577608:android:faa393d97a6998a38f587d",
+        "mobilesdk_app_id": "1:42894238480:android:6765a698abcf07958c7b95",
         "android_client_info": {
           "package_name": "in.edu.ssn.testssnapp"
         }
       },
       "oauth_client": [
         {
-          "client_id": "565952577608-2hq3418lq70mu20g9o3lj6diglradqob.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "in.edu.ssn.testssnapp",
-            "certificate_hash": "9ca53b956397b6332ceace9f36ff382b8fca2814"
-          }
-        },
-        {
-          "client_id": "565952577608-c29r293atirf2vug8rcv564s940gd7dj.apps.googleusercontent.com",
+          "client_id": "42894238480-2vp30apsmpvoketunsltpipfp6smred0.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "in.edu.ssn.testssnapp",
@@ -31,20 +23,20 @@
           }
         },
         {
-          "client_id": "565952577608-mqpjo1djppsarprjrth1kai1o82hd8o5.apps.googleusercontent.com",
+          "client_id": "42894238480-mmrmgdnprs54mc8ea82ivd63m2d1nlqt.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyCHTl6yBj0_oHRiNo7-jp-seg1xg8B3JVU"
+          "current_key": "AIzaSyBDJgS-zuBIOit05B-4aHO-mTkUhc0MpaI"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "565952577608-mqpjo1djppsarprjrth1kai1o82hd8o5.apps.googleusercontent.com",
+              "client_id": "42894238480-mmrmgdnprs54mc8ea82ivd63m2d1nlqt.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

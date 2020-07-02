@@ -13,12 +13,15 @@ import android.net.Uri;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.os.AsyncTask;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.browser.customtabs.CustomTabsIntent;
 import androidx.core.app.ActivityCompat;
@@ -27,9 +30,11 @@ import androidx.core.content.res.ResourcesCompat;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.instacart.library.truetime.TrueTime;
 
 import org.jsoup.Jsoup;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -605,6 +610,49 @@ public class CommonUtils {
             FirebaseAnalytics.getInstance(context).setCurrentScreen(activity, fragmentName, fragmentName);
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    public static class getInternetTime extends AsyncTask<Void, Void, Void> {
+        OnTimeFetchedListener listener;
+        Context c;
+
+        public getInternetTime(Context c, OnTimeFetchedListener listener) {
+            this.c = c;
+            this.listener = listener;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            Toast.makeText(c, "Loading, please wait...", Toast.LENGTH_LONG).show();
+        }
+
+        @SafeVarargs
+        @Override
+        protected final Void doInBackground(Void... voids) {
+            try {
+                TrueTime.build()
+                        .withSharedPreferences(c)
+                        .withNtpHost("time.google.com")
+                        .withLoggingEnabled(false)
+                        .withConnectionTimeout(31_428)
+                        .initialize();
+            } catch (IOException e) {
+                e.printStackTrace();
+                Log.d("getInternetTime", "Exception when trying to get TrueTime", e);
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+            listener.onTimeFetched();
+        }
+
+        public interface OnTimeFetchedListener {
+            void onTimeFetched();
         }
     }
 }

@@ -1,6 +1,5 @@
 package in.edu.ssn.testssnapp.services;
 
-import android.Manifest;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -8,7 +7,6 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -21,15 +19,6 @@ import android.os.IBinder;
 
 import androidx.annotation.Nullable;
 
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.PendingResult;
-import com.google.android.gms.common.api.ResultCallback;
-import com.google.android.gms.common.api.Status;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.location.LocationSettingsRequest;
-import com.google.android.gms.location.LocationSettingsResult;
-import com.google.android.gms.location.LocationSettingsStatusCodes;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
@@ -41,8 +30,12 @@ import in.edu.ssn.testssnapp.utils.SharedPref;
 public class TransmitLocationService extends Service implements LocationListener {
     DatabaseReference busLocDBRef;
     LocationManager locationManager;
+    static Notification.Builder nbuilder;
+    static NotificationManager notificationManager;
     //    double SSNCEPolygon[]; //TODO: The polygon within which we have to check to stop service automatically; check note at end.
     public static final String ACTION_START_FOREGROUND_SERVICE = "ACTION_START_FOREGROUND_SERVICE";
+    public static final String ACTION_SUSPEND_FOREGROUND_SERVICE = "ACTION_SUSPEND_FOREGROUND_SERVICE";
+    public static final String ACTION_RESTART_FOREGROUND_SERVICE = "ACTION_RESTART_FOREGROUND_SERVICE";
     public static final String ACTION_STOP_FOREGROUND_SERVICE = "ACTION_STOP_FOREGROUND_SERVICE";
     String routeNo, latLongString, userID;
     int speed;
@@ -52,19 +45,19 @@ public class TransmitLocationService extends Service implements LocationListener
         if (intent == null || intent.getAction() == null)
             return super.onStartCommand(intent, flags, startId);
 
-        checkForLocationPermissions();
-
-        locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        locationManager = (LocationManager) this.getSystemService(LOCATION_SERVICE);
         routeNo = intent.getStringExtra("routeNo");
         userID = SharedPref.getString(getApplicationContext(), "email");
         busLocDBRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo).getRef();
-
+        busLocDBRef.onDisconnect().removeValue();
         switch (intent.getAction()) {
             case ACTION_START_FOREGROUND_SERVICE:
                 busLocDBRef.child("currentSharerID").setValue(userID);
                 try {
                     if (locationManager != null) {
-                        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, this);
+                        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
+                        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, this);
+
                         Location l = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
                         if (l != null) {
                             latLongString = l.getLatitude() + "," + l.getLongitude();
@@ -83,6 +76,12 @@ public class TransmitLocationService extends Service implements LocationListener
 //                Toast.makeText(getApplicationContext(), "Location Sharing started successfully.", Toast.LENGTH_SHORT).show();
 
                 break;
+            case ACTION_SUSPEND_FOREGROUND_SERVICE:
+                startForeground(1, prepareForegroundServiceNotification("Location Sharing suspended", "We'll auto-restart location sharing once you're back online in some time.", this, new Intent(this, MapActivity.class).setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP).putExtra("routeNo", routeNo)));
+                break;
+            case ACTION_RESTART_FOREGROUND_SERVICE:
+                startForeground(1, prepareForegroundServiceNotification("Sharing your location", "Your location will be used to determine your bus' location.", this, new Intent(this, MapActivity.class).setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP).putExtra("routeNo", routeNo)));
+                break;
             case ACTION_STOP_FOREGROUND_SERVICE:
                 locationManager.removeUpdates(this);
                 stopForeground(true);
@@ -93,12 +92,12 @@ public class TransmitLocationService extends Service implements LocationListener
 
     public static Notification prepareForegroundServiceNotification(String title, String message, Context context, Intent intent) {
         PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         Uri alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             notificationManager.createNotificationChannel(new NotificationChannel("1", "general", NotificationManager.IMPORTANCE_HIGH));
-            Notification.Builder nbuilder = new Notification.Builder(context, "1")
+            nbuilder = new Notification.Builder(context, "1")
                     .setContentTitle(title)
                     .setSmallIcon(R.drawable.ssn_logo)
                     .setStyle(new Notification.BigTextStyle().bigText(message))
@@ -110,7 +109,7 @@ public class TransmitLocationService extends Service implements LocationListener
 
             return nbuilder.build();
         } else {
-            Notification.Builder nbuilder = new Notification.Builder(context)
+            nbuilder = new Notification.Builder(context)
                     .setContentTitle(title)
                     .setSmallIcon(R.drawable.ssn_logo)
                     .setStyle(new Notification.BigTextStyle().bigText(message))
@@ -189,45 +188,6 @@ public class TransmitLocationService extends Service implements LocationListener
         busLocDBRef.child("speed").setValue(0);
     }
 
-    //Permission request (worst-case check)
-    private void checkForLocationPermissions() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                stopSelf();
-            } else
-                checkForGPSEnabled();
-        } else
-            checkForGPSEnabled();
-    }
-
-
-    //************************Check whether gps is enabled or not *********************//
-
-    private void checkForGPSEnabled() {
-        GoogleApiClient googleApiClient = new GoogleApiClient.Builder(getApplicationContext())
-                .addApi(LocationServices.API).build();
-        googleApiClient.connect();
-
-        LocationRequest locationRequest = LocationRequest.create();
-        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        locationRequest.setInterval(200);
-        locationRequest.setFastestInterval(100);
-
-        LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder().addLocationRequest(locationRequest);
-        builder.setAlwaysShow(true);
-
-        PendingResult<LocationSettingsResult> result = LocationServices.SettingsApi.checkLocationSettings(googleApiClient, builder.build());
-        result.setResultCallback(new ResultCallback<LocationSettingsResult>() {
-            @Override
-            public void onResult(LocationSettingsResult result) {
-                final Status status = result.getStatus();
-                if (status.getStatusCode() != LocationSettingsStatusCodes.SUCCESS) {
-                    stopForeground(true);
-                    stopSelf();
-                }
-            }
-        });
-    }
 }
 
 /*TODO: Convert this code to java and put it in the service, as a function, to check if a point lies within a polygon
