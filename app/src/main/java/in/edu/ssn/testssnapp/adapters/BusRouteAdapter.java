@@ -70,11 +70,18 @@ public class BusRouteAdapter extends RecyclerView.Adapter<BusRouteAdapter.BusRou
                     Toast.makeText(context, "You're offline! Please connect to the internet to continue!", Toast.LENGTH_SHORT).show();
                 } else if (isDayScholar) {
                     DatabaseReference timeRef = FirebaseDatabase.getInstance().getReference("Bus Locations");
+                    Toast.makeText(context, "Loading, please wait...", Toast.LENGTH_LONG).show();
                     timeRef.addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
                         public void onDataChange(@NonNull DataSnapshot snapshot) {
                             new CommonUtils.getInternetTime(context, () -> {
-                                Date currentTime = TrueTime.now(); //currentTime example: "Thu Jul 02 16:26:49 GMT+05:30 2020"
+                                Date currentTime = null;
+                                try {
+                                    currentTime = TrueTime.now(); //currentTime example: "Thu Jul 02 16:26:49 GMT+05:30 2020"
+                                } catch (Exception e) {
+                                    Toast.makeText(context, "An internal error occurred! Please try again!", Toast.LENGTH_LONG).show();
+                                }
+                                if (currentTime == null) return;
                                 String s = currentTime.toString();
                                 /*Long startTime = snapshot.child("startTime").getValue(Long.class);
                                 Long endTime = snapshot.child("endTime").getValue(Long.class);*/

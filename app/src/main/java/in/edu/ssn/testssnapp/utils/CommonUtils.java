@@ -21,7 +21,6 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.browser.customtabs.CustomTabsIntent;
 import androidx.core.app.ActivityCompat;
@@ -625,7 +624,6 @@ public class CommonUtils {
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
-            Toast.makeText(c, "Loading, please wait...", Toast.LENGTH_LONG).show();
         }
 
         @SafeVarargs
@@ -648,7 +646,7 @@ public class CommonUtils {
         @Override
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
-            listener.onTimeFetched();
+            if (listener != null) listener.onTimeFetched();
         }
 
         public interface OnTimeFetchedListener {
