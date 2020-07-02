@@ -112,7 +112,6 @@ dependencies {
     implementation 'com.github.zcweng:switch-button:0.0.3@aar'
     implementation 'com.amulyakhare:com.amulyakhare.textdrawable:1.0.1'
     implementation 'commons-net:commons-net:3.6'
-    implementation 'com.github.instacart.truetime-android:library:3.3'
     //check once after updating the library as 1.2.0 not working!
     implementation 'androidx.browser:browser:1.0.0'
 }
