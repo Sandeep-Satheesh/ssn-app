@@ -231,13 +231,13 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                     return;
                 FCMHelper.clearNotification(2, MapActivity.this);
                 DatabaseReference buslocref = FirebaseDatabase.getInstance().getReference("Bus Locations").child(SharedPref.getString(getApplicationContext(), "routeNo"));
-                final long[] total = {0, 0};
+                final long[] total = {0};
                 buslocref.addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                        total[0] = dataSnapshot.getChildrenCount();
                         total[1]++;
-                        if (total[1] < 4) {
+                        if (total[1] < 12) {
+                            FirebaseDatabase.getInstance().purgeOutstandingWrites();
                             buslocref.removeEventListener(this);
                             buslocref.addListenerForSingleValueEvent(this);
                             return;
