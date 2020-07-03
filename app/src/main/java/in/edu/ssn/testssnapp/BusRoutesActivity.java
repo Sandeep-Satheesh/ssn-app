@@ -65,19 +65,9 @@ public class BusRoutesActivity extends BaseActivity implements TextWatcher {
         initUI();
         new getBusRoute().execute();
 
-        backIV.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                onBackPressed();
-            }
-        });
+        backIV.setOnClickListener(v -> onBackPressed());
 
-        clearIV.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                et_num.setText("");
-            }
-        });
+        clearIV.setOnClickListener(v -> et_num.setText(""));
     }
 
     /********************************************************/

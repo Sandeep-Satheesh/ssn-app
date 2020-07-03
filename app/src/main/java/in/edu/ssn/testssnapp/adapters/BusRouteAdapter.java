@@ -26,6 +26,7 @@ import java.util.Objects;
 import in.edu.ssn.testssnapp.MapActivity;
 import in.edu.ssn.testssnapp.R;
 import in.edu.ssn.testssnapp.models.BusRoute;
+import in.edu.ssn.testssnapp.services.TransmitLocationService;
 import in.edu.ssn.testssnapp.utils.CommonUtils;
 import in.edu.ssn.testssnapp.utils.SharedPref;
 
@@ -68,6 +69,13 @@ public class BusRouteAdapter extends RecyclerView.Adapter<BusRouteAdapter.BusRou
                 if (CommonUtils.alerter(context)) {
                     Toast.makeText(context, "You're offline! Please connect to the internet to continue!", Toast.LENGTH_SHORT).show();
                 } else if (isDayScholar) {
+                    if (CommonUtils.isMyServiceRunning(context, TransmitLocationService.class)) {
+                        Intent intent = new Intent(context, MapActivity.class);
+                        intent.putExtra("routeNo", Route);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        context.startActivity(intent);
+                        return;
+                    }
                     DatabaseReference timeRef = FirebaseDatabase.getInstance().getReference("Bus Locations");
                     Toast.makeText(context, "Attempting to fetch internet time, please wait...", Toast.LENGTH_LONG).show();
                     timeRef.addListenerForSingleValueEvent(new ValueEventListener() {
@@ -80,7 +88,7 @@ public class BusRouteAdapter extends RecyclerView.Adapter<BusRouteAdapter.BusRou
                                     Toast.makeText(context, "There was an error fetching the internet time! Access denied!", Toast.LENGTH_LONG).show();
                                     return;
                                 }
-                                String s = new SimpleDateFormat("u hh:mm:ss").format(trueTime);
+                                String s = new SimpleDateFormat("EEE, MMM d yyyy, hh:mm:ss").format(trueTime);
 
                                 Boolean masterEnable = snapshot.child("masterEnable").getValue(Boolean.class);
                                 if (masterEnable == null || !masterEnable) {// || startTime == null || endTime == null) {
@@ -98,6 +106,7 @@ public class BusRouteAdapter extends RecyclerView.Adapter<BusRouteAdapter.BusRou
                                     Toast.makeText(context, "Cannot use the bus tracking feature beyond " + SimpleDateFormat.getTimeInstance().format(endTime) + "!", Toast.LENGTH_LONG).show();
                                     return;
                                 } */
+                                timeRef.removeEventListener(this);
                                 Toast.makeText(context, "Access granted!", Toast.LENGTH_SHORT).show();
                                 Intent intent = new Intent(context, MapActivity.class);
                                 intent.putExtra("routeNo", Route);

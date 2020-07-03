@@ -59,6 +59,7 @@ public class BusAlertsFragment extends Fragment {
         setupFireStore();
 
         busRoutesCV.setOnClickListener(v -> {
+            SharedPref.putInt(getContext(), "disruption_count", 0);
             startActivity(new Intent(getContext(), BusRoutesActivity.class));
             Bungee.slideLeft(getContext());
         });
