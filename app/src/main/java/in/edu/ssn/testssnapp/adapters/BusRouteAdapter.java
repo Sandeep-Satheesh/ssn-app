@@ -66,14 +66,17 @@ public class BusRouteAdapter extends RecyclerView.Adapter<BusRouteAdapter.BusRou
         holder.busRouteCV.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                v.setEnabled(false);
                 if (CommonUtils.alerter(context)) {
                     Toast.makeText(context, "You're offline! Please connect to the internet to continue!", Toast.LENGTH_SHORT).show();
+                    v.setEnabled(true);
                 } else if (isDayScholar) {
                     if (CommonUtils.isMyServiceRunning(context, TransmitLocationService.class)) {
                         Intent intent = new Intent(context, MapActivity.class);
                         intent.putExtra("routeNo", Route);
                         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                         context.startActivity(intent);
+                        v.setEnabled(true);
                         return;
                     }
                     DatabaseReference timeRef = FirebaseDatabase.getInstance().getReference("Bus Locations");
@@ -88,14 +91,17 @@ public class BusRouteAdapter extends RecyclerView.Adapter<BusRouteAdapter.BusRou
                                     Toast.makeText(context, "There was an error fetching the internet time! Access denied!", Toast.LENGTH_LONG).show();
                                     return;
                                 }
-                                String s = new SimpleDateFormat("EEE, MMM d yyyy, hh:mm:ss").format(trueTime);
-
+                                String s = new SimpleDateFormat("EEE, MMM dd yyyy, hh:mm:ss").format(trueTime);
+                                long timeOffset = trueTime - System.currentTimeMillis();
+                                SharedPref.putLong(context, "time_offset", timeOffset);
                                 Boolean masterEnable = snapshot.child("masterEnable").getValue(Boolean.class);
                                 if (masterEnable == null || !masterEnable) {// || startTime == null || endTime == null) {
                                     Toast.makeText(context, "Cannot start the bus tracking feature! Master switch is off!", Toast.LENGTH_LONG).show();
+                                    v.setEnabled(true);
                                     return;
-                                } else if (Objects.equals(s.charAt(0), '7')) {
+                                } else if (Objects.equals(s.substring(0, 3), "Sun")) { //Example s: "Sat, Jul 04 2020, 11:14:47"
                                     Toast.makeText(context, "Cannot start bus tracking feature on Sundays!", Toast.LENGTH_LONG).show();
+                                    v.setEnabled(true);
                                     return;
                                 }
                                 /*else if (currentTime < startTime) {
@@ -107,11 +113,11 @@ public class BusRouteAdapter extends RecyclerView.Adapter<BusRouteAdapter.BusRou
                                     return;
                                 } */
                                 timeRef.removeEventListener(this);
-                                Toast.makeText(context, "Access granted!", Toast.LENGTH_SHORT).show();
                                 Intent intent = new Intent(context, MapActivity.class);
                                 intent.putExtra("routeNo", Route);
                                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                                 context.startActivity(intent);
+                                v.setEnabled(true);
                             }).execute();
 
                         }

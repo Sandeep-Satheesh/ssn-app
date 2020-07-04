@@ -47,7 +47,7 @@
     <string name="live_location_status">Live Location Status</string>
     <string name="volunteer_details_not_available_currently">Volunteer details not available currently!</string>
     <string name="no_bus_data">There is no bus data to display!</string>
-    <string name="no_volunteer_available">Sorry! There aren\'t any volunteers sharing location for your route right now! Please try again later!</string>
+    <string name="no_volunteer_available">Sorry! There aren\'t any volunteers sharing location for this route right now! Please try again later!</string>
     <string name="sharer_online_status">Sharer Online Status</string>
     <string name="would_you_like_to_volunteer">No one is volunteering for your bus currently! Press the \'Start Volunteering\' button to go!</string>
     <string name="improper_shutdown">Looks like the app didn\'t shut down correctly last time! Please come back to this screen once again to avoid unexpected behaviour.</string>

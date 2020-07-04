@@ -7,6 +7,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -24,14 +25,16 @@ import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.Objects;
 
+import in.edu.ssn.testssnapp.BusRoutesActivity;
 import in.edu.ssn.testssnapp.MapActivity;
 import in.edu.ssn.testssnapp.R;
 import in.edu.ssn.testssnapp.utils.CommonUtils;
 import in.edu.ssn.testssnapp.utils.SharedPref;
+import in.edu.ssn.testssnapp.utils.SystemTimeChangedReceiver;
 
 public class TransmitLocationService extends Service implements LocationListener {
     DatabaseReference busLocDBRef;
-    LocationManager locationManager;
+    static LocationManager locationManager;
     volatile boolean suspendFlag = false, isUsingNetworkProvider = false;
     static Notification.Builder nbuilder;
     static NotificationManager notificationManager;
@@ -41,11 +44,20 @@ public class TransmitLocationService extends Service implements LocationListener
     public static final String ACTION_CHANGE_NOTIFICATION_MESSAGE = "ACTION_CHANGE_NOTIFICATION_MESSAGE";
     String routeNo, latLongString, userID;
     int speed;
+    static SystemTimeChangedReceiver systemTimeChangedReceiver;
+    static IntentFilter intentFilter;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (intent == null || intent.getAction() == null)
+        intentFilter = new IntentFilter();
+        intentFilter.addAction(Intent.ACTION_TIME_CHANGED);
+        intentFilter.addAction(Intent.ACTION_TIMEZONE_CHANGED);
+        systemTimeChangedReceiver = new SystemTimeChangedReceiver();
+        registerReceiver(systemTimeChangedReceiver, intentFilter);
+
+        if (intent == null || intent.getAction() == null) {
             return super.onStartCommand(intent, flags, startId);
+        }
         locationManager = (LocationManager) this.getSystemService(LOCATION_SERVICE);
         routeNo = intent.getStringExtra("routeNo");
         suspendFlag = intent.getBooleanExtra("suspendFlag", true);
@@ -53,6 +65,8 @@ public class TransmitLocationService extends Service implements LocationListener
         busLocDBRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo).getRef();
         busLocDBRef.child("currentSharerID").onDisconnect().setValue("null");
         busLocDBRef.child("sharingLoc").onDisconnect().setValue(false);
+
+        validateCurrentTime();
 
         switch (intent.getAction()) {
             case ACTION_START_FOREGROUND_SERVICE:
@@ -86,6 +100,7 @@ public class TransmitLocationService extends Service implements LocationListener
                 break;
             case ACTION_STOP_FOREGROUND_SERVICE:
                 locationManager.removeUpdates(this);
+                unregisterReceiver(systemTimeChangedReceiver);
                 stopForeground(true);
                 stopSelf();
         }
@@ -123,6 +138,7 @@ public class TransmitLocationService extends Service implements LocationListener
             return nbuilder.build();
         }
     }
+
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
@@ -131,6 +147,7 @@ public class TransmitLocationService extends Service implements LocationListener
 
     @Override
     public void onLocationChanged(Location location) {
+        validateCurrentTime();
         //changeProviderIfRequired(locationManager.getBestProvider(criteria, true));
         if (CommonUtils.alerter(this) || suspendFlag) return;
         busLocDBRef.child("currentSharerID").setValue(userID);
@@ -144,7 +161,7 @@ public class TransmitLocationService extends Service implements LocationListener
 
     @Override
     public void onStatusChanged(String provider, int status, Bundle extras) {
-        changeProviderIfRequired(provider);
+        validateCurrentTime();
         if (CommonUtils.alerter(this) || suspendFlag) return;
         try {
             if (status == LocationProvider.AVAILABLE) {
@@ -169,7 +186,7 @@ public class TransmitLocationService extends Service implements LocationListener
 
     @Override
     public void onProviderEnabled(String provider) {
-        changeProviderIfRequired(provider);
+        validateCurrentTime();
         if (CommonUtils.alerter(this) || suspendFlag) return;
         busLocDBRef.child("currentSharerID").setValue(userID);
         busLocDBRef.child("sharingLoc").setValue(true);
@@ -186,26 +203,9 @@ public class TransmitLocationService extends Service implements LocationListener
         }
     }
 
-    private void changeProviderIfRequired(String provider) {
-        if (isUsingNetworkProvider && provider.equals(LocationManager.GPS_PROVIDER)) {
-            isUsingNetworkProvider = false;
-            if (suspendFlag) {
-                startForeground(1, prepareForegroundServiceNotification("Sharing your location", "Your location will be used to determine your bus' location.", this, new Intent(this, MapActivity.class).setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP).putExtra("routeNo", SharedPref.getString(getApplicationContext(), "routeNo"))));
-                suspendFlag = false;
-            }
-            try {
-                locationManager.removeUpdates(this);
-                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
-            } catch (SecurityException e) {
-                e.printStackTrace();
-            } catch (Exception e1) {
-                e1.printStackTrace();
-            }
-        }
-    }
-
     @Override
     public void onProviderDisabled(String provider) {
+        validateCurrentTime();
         if (Objects.equals(provider, LocationManager.GPS_PROVIDER)) {
             startForeground(1, prepareForegroundServiceNotification("Unable to use your GPS", "Your GPS location is required to continue sharing to the database.", this, new Intent(this, MapActivity.class).setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP).putExtra("routeNo", SharedPref.getString(getApplicationContext(), "routeNo"))));
             suspendFlag = true;
@@ -217,8 +217,6 @@ public class TransmitLocationService extends Service implements LocationListener
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        } else if (Objects.equals(provider, LocationManager.NETWORK_PROVIDER)) {
-            changeProviderIfRequired(LocationManager.NETWORK_PROVIDER);
         }
         if (CommonUtils.alerter(this)) return;
         busLocDBRef.child("currentSharerID").setValue("null");
@@ -229,9 +227,37 @@ public class TransmitLocationService extends Service implements LocationListener
     @Override
     public void onDestroy() {
         super.onDestroy();
-        locationManager.removeUpdates(this);
-        stopForeground(true);
-        stopSelf();
+        try {
+            locationManager.removeUpdates(this);
+        } catch (Exception e) {
+        }
+        try {
+            unregisterReceiver(systemTimeChangedReceiver);
+        } catch (Exception e) {
+        }
+    }
+
+    private void validateCurrentTime() {
+        //String currentTime = new SimpleDateFormat("EEE, MMM dd yyyy, hh:mm:ss").format(System.currentTimeMillis() + SharedPref.getLong(getApplicationContext(), "time_offset")).substring(18);
+        String currentTime = "07:00:00";
+        if (currentTime.compareTo("08:00:00") > 0 || currentTime.compareTo("06:00:00") < 0) {
+            MapActivity.showNotification(4, "1", "Location sharing force-stopped.", "You have exceeded the time limit allowed to use this feature! Thank you for your services.", getApplicationContext(), new Intent(this, BusRoutesActivity.class));
+            busLocDBRef.child("currentSharerID").setValue(userID);
+            busLocDBRef.child("timeLimitViolation").setValue(true);
+
+            try {
+                locationManager.removeUpdates(this);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            try {
+                unregisterReceiver(systemTimeChangedReceiver);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            stopForeground(true);
+            stopSelf();
+        }
     }
 }
 

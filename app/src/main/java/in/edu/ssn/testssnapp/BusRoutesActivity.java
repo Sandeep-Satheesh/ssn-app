@@ -51,7 +51,6 @@ public class BusRoutesActivity extends BaseActivity implements TextWatcher {
     BusRouteAdapter adapter;
     ArrayList<BusRoute> busRoutesList, recyclerList;
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -270,5 +269,10 @@ public class BusRoutesActivity extends BaseActivity implements TextWatcher {
 
             return null;
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
     }
 }
