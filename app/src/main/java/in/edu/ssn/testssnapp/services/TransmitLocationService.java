@@ -21,6 +21,8 @@ import android.os.Bundle;
 import android.os.IBinder;
 
 import androidx.annotation.Nullable;
+import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
@@ -123,7 +125,7 @@ public class TransmitLocationService extends Service implements LocationListener
 
     public static Notification prepareForegroundServiceNotification(boolean goToActivity, String title, String message, Context context, Intent intent) {
         PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, goToActivity ? intent : new Intent(), PendingIntent.FLAG_UPDATE_CURRENT);
-        Notification.Builder nbuilder;
+        NotificationCompat.Builder nbuilder;
         NotificationManager notificationManager;
         notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         Uri alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
@@ -135,24 +137,27 @@ public class TransmitLocationService extends Service implements LocationListener
             channel.setLightColor(Color.BLUE);
             channel.setDescription("Bus Tracking Volunteer Status");
             channel.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE), new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).build());
-            nbuilder = new Notification.Builder(context, "1")
+            nbuilder = new NotificationCompat.Builder(context, "1")
                     .setContentTitle(title)
                     .setSmallIcon(R.drawable.ssn_logo)
-                    .setStyle(new Notification.BigTextStyle().bigText(message))
+                    .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
                     .setChannelId("1")
+                    .setColorized(true)
+                    .setLights(Color.BLUE, 500, 500)
+                    .setColor(ContextCompat.getColor(context, R.color.colorAccent))
                     .setAutoCancel(false)
                     .setOngoing(true)
-                    .setSound(alarmSound)
                     .setContentIntent(pendingIntent);
 
             return nbuilder.build();
         } else {
-            nbuilder = new Notification.Builder(context)
+            nbuilder = new NotificationCompat.Builder(context, "1")
                     .setContentTitle(title)
                     .setSmallIcon(R.drawable.ssn_logo)
-                    .setStyle(new Notification.BigTextStyle().bigText(message))
+                    .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
                     .setAutoCancel(false)
                     .setOngoing(true)
+                    .setColor(ContextCompat.getColor(context, R.color.colorAccent))
                     .setSound(alarmSound)
                     .setContentIntent(pendingIntent);
 

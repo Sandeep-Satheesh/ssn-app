@@ -104,8 +104,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
     ImageView backIV, isBusOnlineIV;
     RelativeLayout mapRL, novolunteerRL;
     ConnectivityManager connectivityManager;
-    static NotificationChannel notificationChannel = null;
-    static NotificationManager notificationManager = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -152,8 +150,10 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
 
     private void clearOldNotifications() {
         FCMHelper.clearNotification(2, "2", getApplicationContext());
-        /*FCMHelper.clearNotification(3, getApplicationContext());
-        FCMHelper.clearNotification(4, getApplicationContext());*/
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            FCMHelper.clearNotification(3, "2", getApplicationContext());
+            FCMHelper.clearNotification(4, "2", getApplicationContext());
+        }
     }
 
     private void switchToVolunteerNetworkCallback() {
@@ -344,7 +344,8 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                     currentSharerID[0] = dataSnapshot.child("currentSharerID").getValue(String.class);
                     isSharing[0] = dataSnapshot.child("sharingLoc").getValue(Boolean.class);
                 }
-                if (!SharedPref.getBoolean(getApplicationContext(), "stopbutton")) {
+                if (CommonUtils.alerter(getApplicationContext()) || !SharedPref.getBoolean(getApplicationContext(), "stopbutton")) {
+                    stopLocationTransmission();
                     while (done.getCount() > 0)
                         done.countDown();
                     busLocRef.removeEventListener(this);
@@ -567,7 +568,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                         runOnUiThread(() -> tvNoVolunteer.setText(R.string.no_volunteer_available));
                 } else {
                     if (CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class))
-                        tvNoVolunteer.setText(R.string.volunteer_offline);
+                        tvNoVolunteer.setText(R.string.no_location_value);
 
                     else if (isBusVolunteer)
                         runOnUiThread(() -> tvNoVolunteer.setText(R.string.start_volunteering_offlinemsg));
@@ -1311,43 +1312,45 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
 
     public static void showNotification(int id, String channelIdString, String title, String message, Context context, Intent intent) {
         PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            if (notificationChannel == null) {
-                notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-                notificationChannel = new NotificationChannel(channelIdString, "Location Sharing Status", NotificationManager.IMPORTANCE_HIGH);
-                notificationChannel.enableLights(true);
-                notificationChannel.enableVibration(true);
-                notificationChannel.setLightColor(Color.BLUE);
-                //notificationChannel.setSound(Settings.System.DEFAULT_NOTIFICATION_URI,
-                //      new AudioAttributes.Builder().setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).setUsage(AudioAttributes.USAGE_NOTIFICATION).build());
-                notificationChannel.setDescription("Bus Tracking Volunteer Status alerts.");
-                notificationManager.createNotificationChannel(notificationChannel);
-            }
+            NotificationChannel notificationChannel = new NotificationChannel(channelIdString, "Location Sharing Status", NotificationManager.IMPORTANCE_DEFAULT);
+            notificationChannel.enableLights(true);
+            notificationChannel.enableVibration(true);
+            notificationChannel.setLightColor(Color.BLUE);
+            notificationChannel.setSound(Settings.System.DEFAULT_NOTIFICATION_URI,
+                    new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).build());
+            notificationChannel.setDescription("Bus Tracking Volunteer Status alerts.");
+            notificationManager.createNotificationChannel(notificationChannel);
 
             NotificationCompat.Builder nbuilder = new NotificationCompat.Builder(context, channelIdString)
                     .setContentTitle(title)
                     .setSmallIcon(R.drawable.ssn_logo)
                     .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
-                    .setPriority(NotificationCompat.PRIORITY_HIGH)
-                    //.setChannelId(channelIdString)
-                    //.setSound(alarmSound,
-                    //      new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).build())
+                    .setChannelId(channelIdString)
                     .setAutoCancel(true)
+                    .setLights(Color.BLUE, 500, 500)
+                    .setColorized(true)
+                    .setColor(ContextCompat.getColor(context, R.color.colorAccent))
                     .setContentIntent(pendingIntent);
-
-            notificationManager.notify(id, nbuilder.build());
+            Notification n = nbuilder.build();
+            n.flags = n.flags | Notification.FLAG_ONLY_ALERT_ONCE;
+            notificationManager.notify(id, n);
 
         } else {
-            Notification.Builder nbuilder = new Notification.Builder(context)
+            NotificationCompat.Builder nbuilder = new NotificationCompat.Builder(context, channelIdString)
                     .setContentTitle(title)
                     .setSmallIcon(R.drawable.ssn_logo)
-                    .setStyle(new Notification.BigTextStyle().bigText(message))
+                    .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
                     .setAutoCancel(true)
-                    .setSound(Settings.System.DEFAULT_NOTIFICATION_URI,
-                            new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).build())
+                    .setPriority(Notification.PRIORITY_HIGH)
+                    .setSound(Settings.System.DEFAULT_NOTIFICATION_URI)
                     .setContentIntent(pendingIntent);
 
-            notificationManager.notify(id, nbuilder.build());
+            Notification n = nbuilder.build();
+            n.flags = Notification.FLAG_ONLY_ALERT_ONCE;
+            notificationManager.notify(id, n);
         }
     }
 }
