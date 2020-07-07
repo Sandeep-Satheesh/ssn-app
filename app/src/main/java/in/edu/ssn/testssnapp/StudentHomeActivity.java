@@ -45,7 +45,7 @@ public class StudentHomeActivity extends BaseActivity implements View.OnClickLis
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        SharedPref.putInt(getApplicationContext(), "disruption_count", 0);
         if (darkModeEnabled) {
             setContentView(R.layout.activity_student_home_dark);
             clearLightStatusBar(this);

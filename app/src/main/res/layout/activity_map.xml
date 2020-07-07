@@ -80,6 +80,7 @@
 
                         <ImageView
                             android:id="@+id/iv_busOnlineStatus"
+                            android:tag="offline"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_gravity="center"

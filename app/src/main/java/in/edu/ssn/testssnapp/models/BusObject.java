@@ -4,16 +4,16 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 
 public class BusObject {
-    String routeNo, currentVolunteerId;
+    volatile String routeNo, currentVolunteerId;
 
     public void setRouteNo(String routeNo) {
         this.routeNo = routeNo;
     }
 
-    Marker busMarker;
-    OnLocationUpdatedListener locationUpdatedListener;
-    boolean isSharerOnline;
-    int speed;
+    volatile Marker busMarker;
+    volatile OnLocationUpdatedListener locationUpdatedListener;
+    volatile boolean isSharerOnline;
+    volatile int speed;
 
 
     public void setUserOnline(boolean sharerOnline) {
@@ -44,6 +44,10 @@ public class BusObject {
     }
 
     public BusObject() {
+        isSharerOnline = false;
+        speed = 0;
+        routeNo = currentVolunteerId = "";
+        locationUpdatedListener = null;
     }
 
     public BusObject(String routeNo, String currentVolunteerId, Marker busMarker, int speed, boolean isSharerOnline, OnLocationUpdatedListener locationUpdatedListener) {

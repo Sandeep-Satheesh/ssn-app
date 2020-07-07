@@ -80,7 +80,6 @@ public class SplashActivity extends AppCompatActivity {
         checkIsBlocked();
         new checkForceUpdate().execute();
         setUpCrashReport();
-
         try {
             gifFromResource = new GifDrawable(getResources(), R.drawable.splash_screen);
             GifImageView gifImageView = findViewById(R.id.splashIV);

@@ -62,9 +62,12 @@ public class FCMHelper {
                 });
     }
 
-    public static void clearNotification(int id, Context context) {
+    public static void clearNotification(int id, String channelIdString, Context context) {
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        notificationManager.cancel(id);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+            notificationManager.deleteNotificationChannel(channelIdString);
+
+        else notificationManager.cancel(id);
     }
 
     public static void showNotification(String title, String message, Context context, Intent intent) {

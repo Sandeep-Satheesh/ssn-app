@@ -60,6 +60,7 @@ public class Constants {
     public static final int exam_cell = 5;
     public static final int event = 6;
     public static final String lakshya = "Lakshya";
+    public static final int MAX_LOCSHARE_RETRIES_ALLOWED = 4;
     public static String GLOBAL_CHAT = "global_chat";
     public static ArrayList<String> fresher_email = new ArrayList<String>(Arrays.asList(
             "ssnsection1@gmail.com", "ssn2019_s2@googlegroups.com", "s3ssn2019@gmail.com",
