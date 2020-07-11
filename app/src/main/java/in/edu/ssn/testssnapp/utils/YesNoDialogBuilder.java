@@ -2,9 +2,7 @@ package in.edu.ssn.testssnapp.utils;
 
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.graphics.Color;
-import android.view.ContextThemeWrapper;
 
 import in.edu.ssn.testssnapp.R;
 
@@ -26,6 +24,8 @@ public class YesNoDialogBuilder extends AlertDialog {
             if (darkMode) {
                 d.getButton(BUTTON_POSITIVE).setBackgroundColor(c.getResources().getColor(R.color.darkColor1));
                 d.getButton(BUTTON_NEGATIVE).setBackgroundColor(c.getResources().getColor(R.color.darkColor1));
+                d.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.CYAN);
+                d.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.CYAN);
             }
             d.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.parseColor("#5683AD"));
             d.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.parseColor("#5683AD"));

@@ -83,31 +83,31 @@ public class BusRouteAdapter extends RecyclerView.Adapter<BusRouteAdapter.BusRou
                     }
                     for (BusRouteViewHolder i : holders)
                         i.busRouteCV.setEnabled(false);
-
+                    new CommonUtils.getInternetTime(context, (trueTime) -> {
+                                /*Long startTime = snapshot.child("startTime").getValue(Long.class);
+                                Long endTime = snapshot.child("endTime").getValue(Long.class);*/
+                        if (trueTime == 0) {
+                            Toast.makeText(context, "There was an error fetching the internet time! Access denied!", Toast.LENGTH_LONG).show();
+                            for (BusRouteViewHolder i : holders)
+                                i.busRouteCV.setEnabled(true);
+                            return;
+                        }
+                        String s = new SimpleDateFormat("EEE, MMM dd yyyy, hh:mm:ss").format(trueTime);
+                        long timeOffset = trueTime - System.currentTimeMillis();
+                        SharedPref.putLong(context, "time_offset", timeOffset);
+                    }).execute();
                     DatabaseReference timeRef = FirebaseDatabase.getInstance().getReference("Bus Locations");
-                    Toast.makeText(context, "Attempting to fetch internet time, please wait...", Toast.LENGTH_LONG).show();
+                    //Toast.makeText(context, "Attempting to fetch internet time, please wait...", Toast.LENGTH_LONG).show();
                     timeRef.addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
                         public void onDataChange(@NonNull DataSnapshot snapshot) {
-                            new CommonUtils.getInternetTime(context, (trueTime) -> {
-                                /*Long startTime = snapshot.child("startTime").getValue(Long.class);
-                                Long endTime = snapshot.child("endTime").getValue(Long.class);*/
-                                if (trueTime == 0) {
-                                    Toast.makeText(context, "There was an error fetching the internet time! Access denied!", Toast.LENGTH_LONG).show();
-                                    for (BusRouteViewHolder i : holders)
-                                        i.busRouteCV.setEnabled(true);
-                                    return;
-                                }
-                                String s = new SimpleDateFormat("EEE, MMM dd yyyy, hh:mm:ss").format(trueTime);
-                                long timeOffset = trueTime - System.currentTimeMillis();
-                                SharedPref.putLong(context, "time_offset", timeOffset);
-                                Boolean masterEnable = snapshot.child("masterEnable").getValue(Boolean.class);
-                                if (masterEnable == null || !masterEnable) {// || startTime == null || endTime == null) {
-                                    Toast.makeText(context, "Cannot start the bus tracking feature! Master switch is off!", Toast.LENGTH_LONG).show();
-                                    for (BusRouteViewHolder i : holders)
-                                        i.busRouteCV.setEnabled(true);
-                                    return;
-                                } /*else if (Objects.equals(s.substring(0, 3), "Sun")) { //Example s: "Sat, Jul 04 2020, 11:14:47"
+                            Boolean masterEnable = snapshot.child("masterEnable").getValue(Boolean.class);
+                            if (masterEnable == null || !masterEnable) {// || startTime == null || endTime == null) {
+                                Toast.makeText(context, "Cannot start the bus tracking feature! Master switch is off!", Toast.LENGTH_LONG).show();
+                                for (BusRouteViewHolder i : holders)
+                                    i.busRouteCV.setEnabled(true);
+                                return;
+                            } /*else if (Objects.equals(s.substring(0, 3), "Sun")) { //Example s: "Sat, Jul 04 2020, 11:14:47"
                                     Toast.makeText(context, "Cannot start bus tracking feature on Sundays!", Toast.LENGTH_LONG).show();
                                     for (BusRouteViewHolder i : holders)
                                         i.busRouteCV.setEnabled(true);
@@ -121,15 +121,14 @@ public class BusRouteAdapter extends RecyclerView.Adapter<BusRouteAdapter.BusRou
                                     Toast.makeText(context, "Cannot use the bus tracking feature beyond " + SimpleDateFormat.getTimeInstance().format(endTime) + "!", Toast.LENGTH_LONG).show();
                                     return;
                                 } */
-                                timeRef.removeEventListener(this);
-                                Intent intent = new Intent(context, MapActivity.class);
-                                intent.putExtra("routeNo", Route);
-                                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                                context.startActivity(intent);
-                                for (BusRouteViewHolder i : holders)
-                                    i.busRouteCV.setEnabled(true);
-                            }).execute();
 
+                            timeRef.removeEventListener(this);
+                            Intent intent = new Intent(context, MapActivity.class);
+                            intent.putExtra("routeNo", Route);
+                            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            context.startActivity(intent);
+                            for (BusRouteViewHolder i : holders)
+                                i.busRouteCV.setEnabled(true);
                         }
 
                         @Override

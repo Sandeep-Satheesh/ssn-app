@@ -44,9 +44,7 @@
     <string name="start_volunteering">Start</string>
     <string name="stop_volunteering">Stop</string>
     <string name="location_handover_msg">Hey!\nThank you very much for your services! Another volunteer has taken over the location sharing responsibility right now.\n\n<b>The sharing of your location data to the servers has been stopped.\nYou can now turn off your GPS if you\'re not using it.</b></string>
-    <string name="live_location_status">Live Location Status</string>
     <string name="volunteer_details_not_available_currently">Volunteer details not available currently!</string>
-    <string name="no_bus_data">There is no bus data to display!</string>
     <string name="no_volunteer_available">Sorry! There aren\'t any volunteers sharing location for this route right now! Please try again later!</string>
     <string name="sharer_online_status">Sharer Online Status</string>
     <string name="would_you_like_to_volunteer">No one is volunteering for your bus currently! Press the \'Start Volunteering\' button to go!</string>

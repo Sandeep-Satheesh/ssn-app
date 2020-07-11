@@ -22,7 +22,6 @@ import android.os.IBinder;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
-import androidx.core.content.ContextCompat;
 
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
@@ -57,7 +56,7 @@ public class TransmitLocationService extends Service implements LocationListener
         routeNo = intent.getStringExtra("routeNo");
         suspendFlag = intent.getBooleanExtra("suspendFlag", true);
         userID = SharedPref.getString(getApplicationContext(), "email");
-        busLocDBRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo).getRef();
+        busLocDBRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo);
         validateCurrentTime();
 
         switch (intent.getAction()) {
@@ -65,6 +64,7 @@ public class TransmitLocationService extends Service implements LocationListener
                 try {
                     unregisterReceiver(systemTimeChangedReceiver);
                 } catch (Exception e) {
+                    e.printStackTrace();
                 }
                 intentFilter = new IntentFilter();
                 intentFilter.addAction(Intent.ACTION_TIME_CHANGED);
@@ -78,7 +78,7 @@ public class TransmitLocationService extends Service implements LocationListener
                 busLocDBRef.child("currentSharerID").setValue(userID);
                 try {
                     if (locationManager != null) {
-                        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 100, this);
+                        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 10, this);
                         Location l = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
                         if (l != null) {
                             latLongString = l.getLatitude() + "," + l.getLongitude();
@@ -100,7 +100,10 @@ public class TransmitLocationService extends Service implements LocationListener
                 break;
             case ACTION_CHANGE_NOTIFICATION_MESSAGE:
                 String messageTitle = intent.getStringExtra("messageTitle"), messageContent = intent.getStringExtra("messageContent");
-                startForeground(1, prepareForegroundServiceNotification(messageTitle.contains("suspended"), messageTitle, messageContent, this, new Intent(this, MapActivity.class).setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP).putExtra("routeNo", SharedPref.getString(getApplicationContext(), "routeNo"))));
+                suspendFlag = intent.getBooleanExtra("suspendFlag", true);
+                if (messageTitle != null) {
+                    startForeground(1, prepareForegroundServiceNotification(!messageTitle.contains("Reconnecting"), messageTitle, messageContent, this, new Intent(this, MapActivity.class).setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP).putExtra("routeNo", SharedPref.getString(getApplicationContext(), "routeNo"))));
+                }
                 break;
             case ACTION_STOP_FOREGROUND_SERVICE:
                 locationManager.removeUpdates(this);
@@ -109,11 +112,8 @@ public class TransmitLocationService extends Service implements LocationListener
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-
                 if (intent.getBooleanExtra("deleteDBValue", false))
                     busLocDBRef.removeValue();
-                else
-                    busLocDBRef.child("sharingLoc").setValue(false);
 
                 stopForeground(true);
                 stopSelf();
@@ -144,7 +144,7 @@ public class TransmitLocationService extends Service implements LocationListener
                     .setChannelId("1")
                     .setColorized(true)
                     .setLights(Color.BLUE, 500, 500)
-                    .setColor(ContextCompat.getColor(context, R.color.colorAccent))
+                    .setColor(Color.LTGRAY)
                     .setAutoCancel(false)
                     .setOngoing(true)
                     .setContentIntent(pendingIntent);
@@ -157,7 +157,7 @@ public class TransmitLocationService extends Service implements LocationListener
                     .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
                     .setAutoCancel(false)
                     .setOngoing(true)
-                    .setColor(ContextCompat.getColor(context, R.color.colorAccent))
+                    .setColor(Color.LTGRAY)
                     .setSound(alarmSound)
                     .setContentIntent(pendingIntent);
 
@@ -201,7 +201,7 @@ public class TransmitLocationService extends Service implements LocationListener
                     busLocDBRef.child("speed").setValue(speed);
                     busLocDBRef.child("sharingLoc").setValue(true);
                 }
-            } else if (status == LocationProvider.TEMPORARILY_UNAVAILABLE) {
+            } else {
                 busLocDBRef.child("sharingLoc").setValue(false);
                 busLocDBRef.child("speed").setValue(0);
             }
@@ -213,7 +213,13 @@ public class TransmitLocationService extends Service implements LocationListener
     @Override
     public void onProviderEnabled(String provider) {
         validateCurrentTime();
+        if (!suspendFlag && !provider.equals(LocationManager.GPS_PROVIDER)) {
+            suspendFlag = true;
+            return;
+        }
         suspendFlag = false;
+        startForeground(1, prepareForegroundServiceNotification(true, "Sharing your location", "Your location will be used to determine your bus' location.", this, new Intent(this, MapActivity.class).setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP).putExtra("routeNo", SharedPref.getString(getApplicationContext(), "routeNo"))));
+        if (suspendFlag || CommonUtils.alerter(this)) return;
         if (CommonUtils.alerter(this) || suspendFlag) return;
         busLocDBRef.child("currentSharerID").setValue(userID);
         busLocDBRef.child("sharingLoc").setValue(true);
@@ -232,9 +238,16 @@ public class TransmitLocationService extends Service implements LocationListener
 
     @Override
     public void onProviderDisabled(String provider) {
-        startForeground(1, prepareForegroundServiceNotification(true, "GPS is disabled", "Please enable GPS to continue location sharing", this, new Intent(this, MapActivity.class)));
+        if (!suspendFlag && !provider.equals(LocationManager.GPS_PROVIDER)) {
+            busLocDBRef.child("currentSharerID").setValue("null");
+            busLocDBRef.child("sharingLoc").setValue(false);
+            //busLocDBRef.child("speed").setValue(0);
+            suspendFlag = true;
+            return;
+        }
+        startForeground(1, prepareForegroundServiceNotification(true, "Unable to use GPS", "Please check if your GPS is enabled. Your location will be used to determine your bus' location.", this, new Intent(this, MapActivity.class).setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP).putExtra("routeNo", SharedPref.getString(getApplicationContext(), "routeNo"))));
         if (suspendFlag || CommonUtils.alerter(this)) return;
-        //busLocDBRef.child("currentSharerID").setValue("null");
+        busLocDBRef.child("currentSharerID").setValue("null");
         busLocDBRef.child("sharingLoc").setValue(false);
         //busLocDBRef.child("speed").setValue(0);
         suspendFlag = true;
@@ -246,10 +259,12 @@ public class TransmitLocationService extends Service implements LocationListener
         try {
             locationManager.removeUpdates(this);
         } catch (Exception e) {
+            e.printStackTrace();
         }
         try {
             unregisterReceiver(systemTimeChangedReceiver);
         } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

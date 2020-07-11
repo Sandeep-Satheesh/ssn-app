@@ -1,5 +1,12 @@
 package in.edu.ssn.testssnapp.models;
 
+import android.animation.ValueAnimator;
+import android.os.Build;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.DecelerateInterpolator;
+
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 
@@ -10,9 +17,11 @@ public class BusObject {
         this.routeNo = routeNo;
     }
 
+    volatile LatLng position;
     volatile Marker busMarker;
-    volatile OnLocationUpdatedListener locationUpdatedListener;
+    volatile OnInfoUpdatedListener locationUpdatedListener;
     volatile boolean isSharerOnline;
+    public volatile boolean isMarkerVisible;
     volatile int speed;
 
 
@@ -23,8 +32,12 @@ public class BusObject {
 
     public void setSpeed(int speed) {
         this.speed = speed;
-        busMarker.setTitle("Est. Speed: " + speed + " km/h");
-        locationUpdatedListener.onSpeedChanged(routeNo, speed);
+        if (busMarker != null && busMarker.isInfoWindowShown()) {
+            busMarker.hideInfoWindow();
+            busMarker.setTitle("Est. Speed: " + speed + " km/h");
+            busMarker.showInfoWindow();
+        }
+        if (isSharerOnline) locationUpdatedListener.onSpeedChanged(routeNo, speed);
     }
 
     public String getRouteNo() {
@@ -39,7 +52,7 @@ public class BusObject {
         return speed;
     }
 
-    public void setLocationUpdatedListener(OnLocationUpdatedListener locationUpdatedListener) {
+    public void setInfoUpdatedListener(OnInfoUpdatedListener locationUpdatedListener) {
         this.locationUpdatedListener = locationUpdatedListener;
     }
 
@@ -47,10 +60,11 @@ public class BusObject {
         isSharerOnline = false;
         speed = 0;
         routeNo = currentVolunteerId = "";
+        isMarkerVisible = false;
         locationUpdatedListener = null;
     }
 
-    public BusObject(String routeNo, String currentVolunteerId, Marker busMarker, int speed, boolean isSharerOnline, OnLocationUpdatedListener locationUpdatedListener) {
+    public BusObject(String routeNo, String currentVolunteerId, Marker busMarker, int speed, boolean isSharerOnline, OnInfoUpdatedListener locationUpdatedListener) {
         this.currentVolunteerId = currentVolunteerId;
         this.busMarker = busMarker;
         this.routeNo = routeNo;
@@ -64,11 +78,42 @@ public class BusObject {
     }
 
     public LatLng getLocation() {
-        return busMarker.getPosition();
+        return position;
+    }
+
+    public void hideBusMarker() {
+        if (!isMarkerVisible || busMarker == null) return;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
+            ValueAnimator animator = ValueAnimator.ofFloat(0, 1);
+            animator.setInterpolator(new DecelerateInterpolator(5f));
+            animator.setDuration(2000);
+            animator.addUpdateListener(animation -> {
+                busMarker.setAlpha(1 - animation.getAnimatedFraction());
+            });
+            animator.start();
+        } else busMarker.setVisible(false);
+        isMarkerVisible = false;
+    }
+
+    public void showBusMarker() {
+        if (isMarkerVisible || busMarker == null) return;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
+            busMarker.setVisible(true);
+            ValueAnimator animator = ValueAnimator.ofFloat(0, 1);
+            animator.setInterpolator(new AccelerateInterpolator(1f));
+            animator.setDuration(2000);
+            animator.addUpdateListener(animation -> {
+                busMarker.setAlpha(animation.getAnimatedFraction());
+            });
+            animator.start();
+        } else busMarker.setVisible(true);
+        isMarkerVisible = true;
     }
 
     public void setLocation(LatLng location) {
-        busMarker.setPosition(location);
+        position = location;
+        if (busMarker != null)
+            busMarker.setPosition(location);
         locationUpdatedListener.onLocationChanged(routeNo, location);
     }
 
@@ -84,10 +129,30 @@ public class BusObject {
         this.currentVolunteerId = currentVolunteerId;
         locationUpdatedListener.onSharerIdChanged(routeNo, currentVolunteerId);
     }
-    public interface OnLocationUpdatedListener {
+
+    public void moveMarker(GoogleMap googleMap, LatLng newLatLng) {
+        if (busMarker == null) return;
+
+        boolean contains = googleMap.getProjection()
+                .getVisibleRegion()
+                .latLngBounds
+                .contains(newLatLng);
+
+        if (!contains) {
+            // MOVE CAMERA
+            googleMap.animateCamera(CameraUpdateFactory.newLatLng(newLatLng));
+        }
+        busMarker.setPosition(newLatLng);
+    }
+
+    public interface OnInfoUpdatedListener {
         void onSharerIdChanged(String r, String newSharerId);
+
         void onLocationChanged(String r, LatLng location);
+
         void onOnlineStatusChanged(String r, boolean isOnline);
+
         void onSpeedChanged(String r, int newSpeed);
     }
+
 }
