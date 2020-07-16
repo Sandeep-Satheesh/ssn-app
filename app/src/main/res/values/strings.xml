@@ -37,21 +37,15 @@
     <string name="fb_page_detail">To know more about app updates, visit</string>
     <string name="app_fb_page"><u>facebook.com/ssnceapp</u></string>
     <string name="app_insta_page"><u>instagram.com/ssnce_app</u></string>
-    <string name="select_your_bus">Select Bus No.:</string>
-    <string name="enter_bus_route_no">Enter Bus Route No.</string>
-    <string name="start_location_sharing">Start Location sharing</string>
-    <string name="stop_location_sharing">Stop Location sharing</string>
-    <string name="start_volunteering">Start</string>
-    <string name="stop_volunteering">Stop</string>
     <string name="location_handover_msg">Hey!\nThank you very much for your services! Another volunteer has taken over the location sharing responsibility right now.\n\n<b>The sharing of your location data to the servers has been stopped.\nYou can now turn off your GPS if you\'re not using it.</b></string>
-    <string name="volunteer_details_not_available_currently">Volunteer details not available currently!</string>
     <string name="no_volunteer_available">Sorry! There aren\'t any volunteers sharing location for this route right now! Please try again later!</string>
     <string name="sharer_online_status">Sharer Online Status</string>
     <string name="would_you_like_to_volunteer">No one is volunteering for your bus currently! Press the \'Start Volunteering\' button to go!</string>
     <string name="improper_shutdown">Looks like the app didn\'t shut down correctly last time! Restarting screen…</string>
     <string name="cannot_start_loc_sharing">Cannot start location sharing! Another volunteer is sharing their location for this bus currently!</string>
-    <string name="no_location_value">It might take a while if we can\'t fetch your location! Are you on a moving bus?</string>
+    <string name="no_location_value">You\'re online, but are you on a moving bus?\nCheck if your GPS is enabled!</string>
     <string name="volunteer_offline">You are offline! Please come back online to resume volunteering!</string>
     <string name="start_volunteering_offlinemsg">You are offline! Connect back to the Internet to start volunteering!</string>
     <string name="user_offline">You are offline! Please come online to see your bus\' location!</string>
+    <string name="fetching_location">Fetching your location…\nThis can take a while if you are not on a moving bus.</string>
 </resources>

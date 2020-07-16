@@ -73,7 +73,6 @@
                             android:textColor="@android:color/white"
                             android:textStyle="bold"/>
                     </LinearLayout>
-
                 </androidx.appcompat.widget.Toolbar>
             </com.google.android.material.appbar.CollapsingToolbarLayout>
             <LinearLayout

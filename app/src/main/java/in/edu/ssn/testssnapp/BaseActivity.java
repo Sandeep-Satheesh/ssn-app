@@ -23,7 +23,7 @@ public class BaseActivity extends AppCompatActivity {
 
     public void clearLightStatusBar(Activity activity) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
-            activity.getWindow().setStatusBarColor(getResources().getColor(R.color.darkColor));
+            activity.getWindow().setStatusBarColor(getResources().getColor(R.color.darkColor1));
     }
 
 }

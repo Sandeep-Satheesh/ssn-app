@@ -49,8 +49,6 @@
 	</style>
 
 
-
-
 	<style name="chipTextAppearance" parent="TextAppearance.MaterialComponents.Chip">
 		<item name="android:textColor">@android:color/white</item>
 		<item name="android:fontFamily">@font/open_sans</item>
@@ -63,6 +61,11 @@
 		<item name="colorAccent">@color/colorAccent</item>
 		<item name="android:windowLightStatusBar">true</item>
 		<item name="android:windowContentTransitions">true</item>
+	</style>
+
+	<style name="darkStatusBarStyle" parent="@android:style/Theme.DeviceDefault">
+		<item name="android:statusBarColor">@color/darkColor1</item>
+		<item name="android:windowLightStatusBar">true</item>
 	</style>
 
 

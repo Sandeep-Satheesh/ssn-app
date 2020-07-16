@@ -246,9 +246,7 @@ public class CommonUtils {
     }
 
     public static String getTime(Date time) {
-        Date now = new Date();
-        Long t = now.getTime() - time.getTime();
-
+        long t = System.currentTimeMillis() - time.getTime();
         if (t < 60000)
             return t / 1000 + "s ago";
         else if (t < 3600000)

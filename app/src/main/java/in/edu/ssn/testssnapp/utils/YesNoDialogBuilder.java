@@ -24,11 +24,12 @@ public class YesNoDialogBuilder extends AlertDialog {
             if (darkMode) {
                 d.getButton(BUTTON_POSITIVE).setBackgroundColor(c.getResources().getColor(R.color.darkColor1));
                 d.getButton(BUTTON_NEGATIVE).setBackgroundColor(c.getResources().getColor(R.color.darkColor1));
-                d.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.CYAN);
-                d.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.CYAN);
+                d.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.YELLOW);
+                d.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.YELLOW);
+            } else {
+                d.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.parseColor("#5683AD"));
+                d.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.parseColor("#5683AD"));
             }
-            d.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.parseColor("#5683AD"));
-            d.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.parseColor("#5683AD"));
         });
         return d;
     }

@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "42894238480",
+    "firebase_url": "https://testssnapp-1.firebaseio.com",
+    "project_id": "testssnapp-1",
+    "storage_bucket": "testssnapp-1.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:42894238480:android:6765a698abcf07958c7b95",
+        "android_client_info": {
+          "package_name": "in.edu.ssn.testssnapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "42894238480-2vp30apsmpvoketunsltpipfp6smred0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "in.edu.ssn.testssnapp",
+            "certificate_hash": "422cc9d07f170814828eef273249870cdb75ec5c"
+          }
+        },
+        {
+          "client_id": "42894238480-mmrmgdnprs54mc8ea82ivd63m2d1nlqt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDJgS-zuBIOit05B-4aHO-mTkUhc0MpaI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "42894238480-mmrmgdnprs54mc8ea82ivd63m2d1nlqt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

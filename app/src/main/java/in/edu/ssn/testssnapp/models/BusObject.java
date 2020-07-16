@@ -2,6 +2,7 @@ package in.edu.ssn.testssnapp.models;
 
 import android.animation.ValueAnimator;
 import android.os.Build;
+import android.os.Handler;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 
@@ -110,7 +111,10 @@ public class BusObject {
         isMarkerVisible = true;
     }
 
-    public void setLocation(LatLng location) {
+    public void setLocation(LatLng location, Handler handler, GoogleMap googleMap) {
+        if (position == null && googleMap != null) {
+            handler.post(() -> googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 18f)));
+        }
         position = location;
         if (busMarker != null)
             busMarker.setPosition(location);

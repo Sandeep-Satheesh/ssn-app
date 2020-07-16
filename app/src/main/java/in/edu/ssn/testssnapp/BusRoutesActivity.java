@@ -35,6 +35,7 @@ import java.util.Set;
 import in.edu.ssn.testssnapp.adapters.BusRouteAdapter;
 import in.edu.ssn.testssnapp.models.BusRoute;
 import in.edu.ssn.testssnapp.utils.CommonUtils;
+import in.edu.ssn.testssnapp.utils.SharedPref;
 import spencerstudios.com.bungeelib.Bungee;
 
 public class BusRoutesActivity extends BaseActivity implements TextWatcher {
@@ -60,6 +61,7 @@ public class BusRoutesActivity extends BaseActivity implements TextWatcher {
         } else {
             setContentView(R.layout.activity_bus_route);
         }
+        SharedPref.putInt(getApplicationContext(), "disruption_count", 0);
         recyclerList = new ArrayList<>();
         initUI();
         new getBusRoute().execute();

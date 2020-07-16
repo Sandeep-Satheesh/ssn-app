@@ -72,15 +72,6 @@ public class BusRouteAdapter extends RecyclerView.Adapter<BusRouteAdapter.BusRou
                     Toast.makeText(context, "You're offline! Please connect to the internet to continue!", Toast.LENGTH_SHORT).show();
 
                 } else if (isDayScholar) {
-                    if (CommonUtils.isMyServiceRunning(context, TransmitLocationService.class)) {
-                        Intent intent = new Intent(context, MapActivity.class);
-                        intent.putExtra("routeNo", Route);
-                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                        context.startActivity(intent);
-                        for (BusRouteViewHolder i : holders)
-                            i.busRouteCV.setEnabled(true);
-                        return;
-                    }
                     for (BusRouteViewHolder i : holders)
                         i.busRouteCV.setEnabled(false);
                     new CommonUtils.getInternetTime(context, (trueTime) -> {
@@ -97,13 +88,17 @@ public class BusRouteAdapter extends RecyclerView.Adapter<BusRouteAdapter.BusRou
                         SharedPref.putLong(context, "time_offset", timeOffset);
                     }).execute();
                     DatabaseReference timeRef = FirebaseDatabase.getInstance().getReference("Bus Locations");
-                    //Toast.makeText(context, "Attempting to fetch internet time, please wait...", Toast.LENGTH_LONG).show();
                     timeRef.addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
                         public void onDataChange(@NonNull DataSnapshot snapshot) {
                             Boolean masterEnable = snapshot.child("masterEnable").getValue(Boolean.class);
                             if (masterEnable == null || !masterEnable) {// || startTime == null || endTime == null) {
                                 Toast.makeText(context, "Cannot start the bus tracking feature! Master switch is off!", Toast.LENGTH_LONG).show();
+                                if (CommonUtils.isMyServiceRunning(context, TransmitLocationService.class)) {
+                                    Intent i = new Intent(context, TransmitLocationService.class);
+                                    i.setAction(TransmitLocationService.ACTION_STOP_FOREGROUND_SERVICE);
+                                    context.startService(i);
+                                }
                                 for (BusRouteViewHolder i : holders)
                                     i.busRouteCV.setEnabled(true);
                                 return;
