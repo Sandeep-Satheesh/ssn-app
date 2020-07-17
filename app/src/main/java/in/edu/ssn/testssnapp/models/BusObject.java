@@ -27,7 +27,6 @@ public class BusObject {
 
 
     public void setUserOnline(boolean sharerOnline) {
-        if (isSharerOnline == sharerOnline) return;
         isSharerOnline = sharerOnline;
         locationUpdatedListener.onOnlineStatusChanged(routeNo, sharerOnline);
     }
