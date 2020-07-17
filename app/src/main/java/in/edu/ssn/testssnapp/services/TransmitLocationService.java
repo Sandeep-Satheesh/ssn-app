@@ -19,6 +19,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -227,6 +228,14 @@ public class TransmitLocationService extends Service implements LocationListener
 
     @Override
     public void onProviderEnabled(String provider) {
+        try {
+            Location location = locationManager.getLastKnownLocation(provider);
+            if (location != null && location.isFromMockProvider())
+                Toast.makeText(getApplicationContext(), "Alert: Location is from mock location provider!", Toast.LENGTH_SHORT).show();
+
+        } catch (SecurityException e) {
+            e.printStackTrace();
+        }
         validateCurrentTime();
         if (!suspendFlag && !provider.equals(LocationManager.GPS_PROVIDER)) {
             suspendFlag = true;

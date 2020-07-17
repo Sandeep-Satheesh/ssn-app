@@ -27,11 +27,13 @@ public class BusObject {
 
 
     public void setUserOnline(boolean sharerOnline) {
+        if (isSharerOnline == sharerOnline) return;
         isSharerOnline = sharerOnline;
         locationUpdatedListener.onOnlineStatusChanged(routeNo, sharerOnline);
     }
 
     public void setSpeed(int speed) {
+        if (speed == this.speed) return;
         this.speed = speed;
         if (busMarker != null && busMarker.isInfoWindowShown()) {
             busMarker.hideInfoWindow();
@@ -115,6 +117,8 @@ public class BusObject {
         if (position == null && googleMap != null) {
             handler.post(() -> googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 18f)));
         }
+        if (position != null && position.latitude == location.latitude && position.longitude == location.longitude)
+            return;
         position = location;
         if (busMarker != null)
             busMarker.setPosition(location);
@@ -130,6 +134,7 @@ public class BusObject {
     }
 
     public void setCurrentVolunteerId(String currentVolunteerId) {
+        if (currentVolunteerId.equals(this.currentVolunteerId)) return;
         this.currentVolunteerId = currentVolunteerId;
         locationUpdatedListener.onSharerIdChanged(routeNo, currentVolunteerId);
     }
