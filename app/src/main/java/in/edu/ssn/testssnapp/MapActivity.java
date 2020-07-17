@@ -151,7 +151,10 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         pd.setMessage("Map load wait time: ~" + waittime / 1000 + (waittime == 1000 ? " second." : " seconds."));
         pd.setCancelable(false);
         pd.show();
+        fabRecentre = findViewById(R.id.fab_recenter);
+        fabRecentre.setVisibility(View.GONE);
         clearOldNotifications();
+
         Boolean b = getIntent().getBooleanExtra("improper_shutdown", false);
         if (!b && !CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class))
             new CountDownTimer(waittime, 1000) {
@@ -518,7 +521,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         tvStatusBarHeader = findViewById(R.id.tv_trackbus);
         isBusOnlineIV = findViewById(R.id.iv_busOnlineStatus);
         tvVolunteerDetails = findViewById(R.id.tv_volunteerid);
-        fabRecentre = findViewById(R.id.fab_recenter);
         tvLastUpdatedTimeDesc = findViewById(R.id.tv_lastupdated);
         tvLastUpdatedTimeTensDigit = findViewById(R.id.tv_lastupdatedtimeTensDigit);
         tvLastUpdatedTimeUnitsDigit = findViewById(R.id.tv_lastupdatedtimeUnitsDigit);
@@ -1256,6 +1258,10 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                                 String sharerId = dataSnapshot.getValue(String.class);
                                 if (sharerId != null && !sharerId.equals("null")) {
                                     currentBusObject.setCurrentVolunteerId(sharerId);
+                                    if (!cmdStartVolunteering.isEnabled() && sharerId.equals(SharedPref.getString(getApplicationContext(), "email"))) {
+                                        cmdStartVolunteering.setEnabled(true);
+                                        cmdStartVolunteering.setImageResource(R.drawable.ic_location_on);
+                                    }
                                     startTime = System.currentTimeMillis();
                                     updateTimeElapsedTextViews();
                                 }
