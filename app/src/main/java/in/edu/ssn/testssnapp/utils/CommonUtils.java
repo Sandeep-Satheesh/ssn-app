@@ -205,6 +205,25 @@ public class CommonUtils {
         });
     }
 
+    public static int getDayOfWeek(String day) {
+        switch (day) {
+            case "Mon":
+                return 1;
+            case "Tue":
+                return 2;
+            case "Wed":
+                return 3;
+            case "Thu":
+                return 4;
+            case "Fri":
+                return 5;
+            case "Sat":
+                return 6;
+            default:
+                return 7;
+        }
+    }
+
     /************************************************************************/
     // checks if wifi is connected to a particular network
     public static boolean checkWifiOnAndConnected(Context context, String ssid) {

@@ -32,7 +32,7 @@ import in.edu.ssn.testssnapp.utils.SharedPref;
 public class BusRouteAdapter extends RecyclerView.Adapter<BusRouteAdapter.BusRouteViewHolder> {
 
     boolean darkMode;
-    boolean isDayScholar;
+    boolean isDayScholar, disableAll = false;
     private ArrayList<BusRoute> busRoutes;
     private ArrayList<BusRouteViewHolder> holders;
     private Context context;
@@ -68,6 +68,10 @@ public class BusRouteAdapter extends RecyclerView.Adapter<BusRouteAdapter.BusRou
         holder.busRouteCV.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if (disableAll) {
+                    Toast.makeText(context, "Please come back to this page to check if you can use the bus-tracking feature!", Toast.LENGTH_LONG).show();
+                    return;
+                }
                 if (CommonUtils.alerter(context)) {
                     Toast.makeText(context, "You're offline! Please connect to the internet to continue!", Toast.LENGTH_SHORT).show();
 
@@ -83,56 +87,68 @@ public class BusRouteAdapter extends RecyclerView.Adapter<BusRouteAdapter.BusRou
                                 i.busRouteCV.setEnabled(true);
                             return;
                         }
-                        String s = new SimpleDateFormat("EEE, MMM dd yyyy, hh:mm:ss").format(trueTime);
+                        String s = new SimpleDateFormat("EEE, MMM dd yyyy, HH:mm:ss").format(trueTime);
                         long timeOffset = trueTime - System.currentTimeMillis();
                         SharedPref.putLong(context, "time_offset", timeOffset);
-                    }).execute();
-                    DatabaseReference timeRef = FirebaseDatabase.getInstance().getReference("Bus Locations");
-                    timeRef.addListenerForSingleValueEvent(new ValueEventListener() {
-                        @Override
-                        public void onDataChange(@NonNull DataSnapshot snapshot) {
-                            Boolean masterEnable = snapshot.child("masterEnable").getValue(Boolean.class);
-                            if (masterEnable == null || !masterEnable) {// || startTime == null || endTime == null) {
-                                Toast.makeText(context, "Cannot start the bus tracking feature! Master switch is off!", Toast.LENGTH_LONG).show();
-                                if (CommonUtils.isMyServiceRunning(context, TransmitLocationService.class)) {
-                                    Intent i = new Intent(context, TransmitLocationService.class);
-                                    i.setAction(TransmitLocationService.ACTION_STOP_FOREGROUND_SERVICE);
-                                    context.startService(i);
-                                }
-                                for (BusRouteViewHolder i : holders)
-                                    i.busRouteCV.setEnabled(true);
-                                return;
-                            } /*else if (Objects.equals(s.substring(0, 3), "Sun")) { //Example s: "Sat, Jul 04 2020, 11:14:47"
-                                    Toast.makeText(context, "Cannot start bus tracking feature on Sundays!", Toast.LENGTH_LONG).show();
+                        DatabaseReference timeRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child("Rules");
+                        timeRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                                Boolean masterEnable = snapshot.child("masterEnable").getValue(Boolean.class);
+                                String startTime = snapshot.child("startTime").getValue(String.class);
+                                String endTime = snapshot.child("endTime").getValue(String.class);
+                                String allowedDays = snapshot.child("allowedDays").getValue(String.class);
+
+                                if (masterEnable == null || !masterEnable || startTime == null || endTime == null || allowedDays == null) {
+                                    Toast.makeText(context, "Cannot start the bus tracking feature! Master switch is off!", Toast.LENGTH_LONG).show();
+                                    if (CommonUtils.isMyServiceRunning(context, TransmitLocationService.class)) {
+                                        Intent i = new Intent(context, TransmitLocationService.class);
+                                        i.setAction(TransmitLocationService.ACTION_STOP_FOREGROUND_SERVICE);
+                                        context.startService(i);
+                                    }
+                                    disableAll = true;
                                     for (BusRouteViewHolder i : holders)
                                         i.busRouteCV.setEnabled(true);
                                     return;
-                                }
-                                else if (currentTime < startTime) {
-                                    Toast.makeText(context, "Cannot use the bus tracking feature until " + SimpleDateFormat.getTimeInstance().format(startTime) + "!", Toast.LENGTH_LONG).show();
+                                } else if (!allowedDays.contains(String.valueOf(CommonUtils.getDayOfWeek(s.substring(0, 3))))) { //Example s: "Sat, Jul 04 2020, 11:14:47"
+                                    Toast.makeText(context, "Bus tracking feature is not allowed today!", Toast.LENGTH_LONG).show();
                                     return;
                                 }
-                                else if (currentTime > endTime) {
-                                    Toast.makeText(context, "Cannot use the bus tracking feature beyond " + SimpleDateFormat.getTimeInstance().format(endTime) + "!", Toast.LENGTH_LONG).show();
+
+                                String currentTime = s.substring(18);
+
+                                SharedPref.putString(context, "bustracking_starttime", startTime);
+                                SharedPref.putString(context, "bustracking_endtime", endTime);
+
+                                if (currentTime.compareTo(endTime) > 0 || currentTime.compareTo(startTime) < 0) {
+                                    Toast.makeText(context, "Cannot start bus tracking feature outside allowed time limits!", Toast.LENGTH_LONG).show();
+                                    if (CommonUtils.isMyServiceRunning(context, TransmitLocationService.class)) {
+                                        Intent i = new Intent(context, TransmitLocationService.class);
+                                        i.setAction(TransmitLocationService.ACTION_STOP_FOREGROUND_SERVICE);
+                                        context.startService(i);
+                                    }
+                                    for (BusRouteViewHolder i : holders)
+                                        i.busRouteCV.setEnabled(true);
+                                    disableAll = true;
                                     return;
-                                } */
+                                }
+                                timeRef.removeEventListener(this);
+                                Intent intent = new Intent(context, MapActivity.class);
+                                intent.putExtra("routeNo", Route);
+                                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                context.startActivity(intent);
+                                for (BusRouteViewHolder i : holders)
+                                    i.busRouteCV.setEnabled(true);
+                            }
 
-                            timeRef.removeEventListener(this);
-                            Intent intent = new Intent(context, MapActivity.class);
-                            intent.putExtra("routeNo", Route);
-                            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                            context.startActivity(intent);
-                            for (BusRouteViewHolder i : holders)
-                                i.busRouteCV.setEnabled(true);
-                        }
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError error) {
+                            }
+                        });
+                    }).execute();
 
-                        @Override
-                        public void onCancelled(@NonNull DatabaseError error) {
-                        }
-                    });
-                }
-                /*else
-                    Toast.makeText(context,"Tracking feature is not available for Hostellers",Toast.LENGTH_LONG).show();*/
+                } else
+                    Toast.makeText(context, "Bus Tracking feature is not available for hostellers currently!", Toast.LENGTH_LONG).show();
             }
         });
     }

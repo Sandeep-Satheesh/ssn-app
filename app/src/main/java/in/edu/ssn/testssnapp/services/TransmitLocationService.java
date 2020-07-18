@@ -23,11 +23,13 @@ import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
-import in.edu.ssn.testssnapp.BusRoutesActivity;
+import java.text.SimpleDateFormat;
+
 import in.edu.ssn.testssnapp.MapActivity;
 import in.edu.ssn.testssnapp.R;
 import in.edu.ssn.testssnapp.utils.CommonUtils;
@@ -49,7 +51,6 @@ public class TransmitLocationService extends Service implements LocationListener
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-
         if (intent == null || intent.getAction() == null) {
             return super.onStartCommand(intent, flags, startId);
         }
@@ -127,7 +128,6 @@ public class TransmitLocationService extends Service implements LocationListener
                 userID = SharedPref.getString(getApplicationContext(), "email");
                 if (routeNo != null && !routeNo.isEmpty())
                     busLocDBRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo);
-                validateCurrentTime();
 
                 locationManager.removeUpdates(this);
                 try {
@@ -144,8 +144,6 @@ public class TransmitLocationService extends Service implements LocationListener
                 }
                 stopForeground(true);
                 stopSelf();
-
-                return START_NOT_STICKY;
         }
         return START_STICKY;
     }
@@ -169,9 +167,9 @@ public class TransmitLocationService extends Service implements LocationListener
                     .setSmallIcon(R.drawable.ssn_logo)
                     .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
                     .setChannelId("1")
-                    .setColorized(true)
-                    .setColor(Color.WHITE)
-                    .setLights(Color.BLUE, 500, 500)
+                    .setPriority(NotificationManager.IMPORTANCE_MAX)
+                    .setCategory(Notification.CATEGORY_SERVICE)
+                    .setColorized(false)
                     .setAutoCancel(false)
                     .setOngoing(true)
                     .setContentIntent(pendingIntent);
@@ -183,6 +181,8 @@ public class TransmitLocationService extends Service implements LocationListener
                     .setSmallIcon(R.drawable.ssn_logo)
                     .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
                     .setAutoCancel(false)
+                    .setPriority(NotificationManagerCompat.IMPORTANCE_MAX)
+                    .setCategory(NotificationCompat.CATEGORY_SERVICE)
                     .setOngoing(true)
                     .setColor(Color.LTGRAY)
                     .setSound(alarmSound)
@@ -304,11 +304,13 @@ public class TransmitLocationService extends Service implements LocationListener
     }
 
     private void validateCurrentTime() {
-        //String currentTime = new SimpleDateFormat("EEE, MMM dd yyyy, hh:mm:ss").format(System.currentTimeMillis() + SharedPref.getLong(getApplicationContext(), "time_offset")).substring(18);
-        String currentTime = "07:00:00";
-        if (currentTime.compareTo("08:00:00") > 0 || currentTime.compareTo("06:00:00") < 0) {
-            MapActivity.showNotification(4, "1", "Location sharing force-stopped.", "You have exceeded the time limit allowed to use this feature! Thank you for your services.", getApplicationContext(), new Intent(this, BusRoutesActivity.class));
-            busLocDBRef.child("currentSharerID").setValue(userID);
+        String currentTime = new SimpleDateFormat("EEE, MMM dd yyyy, HH:mm:ss").format(System.currentTimeMillis() + SharedPref.getLong(getApplicationContext(), "time_offset")).substring(18),
+                startTime = SharedPref.getString(getApplicationContext(), "bustracking_starttime"),
+                endTime = SharedPref.getString(getApplicationContext(), "bustracking_endtime");
+
+        if (currentTime.compareTo(endTime) > 0 || currentTime.compareTo(startTime) < 0) {
+            MapActivity.showNotification(4, "1", "Location sharing force-stopped.", "You have exceeded the time limit allowed to use this feature! Thank you for your services.", getApplicationContext(), new Intent());
+            Toast.makeText(getApplicationContext(), "The current time is: " + currentTime + ". You have exceeded the allowed time limits to use this feature!", Toast.LENGTH_LONG).show();
             busLocDBRef.child("timeLimitViolation").setValue(true);
 
             try {
@@ -326,24 +328,3 @@ public class TransmitLocationService extends Service implements LocationListener
         }
     }
 }
-
-/*TODO: Convert this code to java and put it in the service, as a function, to check if a point lies within a polygon
-function inside(point, vs) {
-    // ray-casting algorithm based on
-     //http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
-
-    var x = point[0], y = point[1];
-
-    var inside = false;
-    for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-        var xi = vs[i][0], yi = vs[i][1];
-        var xj = vs[j][0], yj = vs[j][1];
-
-        var intersect = ((yi > y) != (yj > y))
-            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-        if (intersect) inside = !inside;
-    }
-
-    return inside;
-};
-*/

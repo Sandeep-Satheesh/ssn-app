@@ -12,9 +12,13 @@ public class SystemTimeChangedReceiver extends BroadcastReceiver {
         switch (Objects.requireNonNull(intent.getAction())) {
             case Intent.ACTION_TIME_CHANGED:
             case Intent.ACTION_TIMEZONE_CHANGED:
-                new CommonUtils.getInternetTime(context, internetTime -> {
-                    SharedPref.putLong(context, "time_offset", internetTime - System.currentTimeMillis());
-                }).execute();
+                if (!CommonUtils.alerter(context))
+                    new CommonUtils.getInternetTime(context, internetTime -> {
+                        SharedPref.putLong(context, "time_offset", internetTime - System.currentTimeMillis());
+                    }).execute();
+                    /*long time = SharedPref.getLong(context, "time_offset") + System.currentTimeMillis();
+                    String currentTime = new SimpleDateFormat("EEE, MMM dd yyyy, HH:mm:ss").format(time).substring(18);
+                    Toast.makeText(context, "TIME CHANGING EVENT CAUGHT!!! THE REAL TIME IS: " + currentTime, Toast.LENGTH_LONG).show();*/
         }
     }
 

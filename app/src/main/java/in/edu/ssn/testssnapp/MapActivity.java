@@ -7,6 +7,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.ProgressDialog;
+import android.app.job.JobScheduler;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
@@ -76,6 +77,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.security.SecureRandom;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -105,6 +107,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
     MapView busTrackingMap;
     ConnectivityManager.NetworkCallback userNetworkCallback, volunteerNetworkCallback;
     NetworkRequest networkRequest;
+    JobScheduler jobScheduler;
     ValueEventListener concurrentVolunteerListener, routeExistslistener, locationChangedListener, sharerChangedListener, onlineStatusChangedListener, speedChangedListener;
     ProgressDialog pd;
     boolean isMapLoaded = false;
@@ -134,7 +137,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                 return;
             }
         }
-        checkRequirementsAndPermissions();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             getWindow().setSustainedPerformanceMode(true);
         }
@@ -240,7 +242,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                 @Override
                 public void onAvailable(@NonNull Network network) { //user
                     super.onAvailable(network);
-                    checkRequirementsAndPermissions();
                     if (currentBusObject == null || currentBusObject.isSharerOnline()) {
                         if (cmdStartVolunteering != null && !cmdStartVolunteering.isEnabled()) {
                             runOnUiThread(() -> {
@@ -262,9 +263,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                                 cmdStartVolunteering.setEnabled(true);
                             }
                         }
-                        tvNoVolunteer.setText(R.string.fetching_location);
-                        if (busTrackingMap != null && busTrackingMap.getVisibility() == View.VISIBLE && tvVolunteerDetails != null)
-                            tvVolunteerDetails.setText("Reconnecting...");
                     });
                 }
 
@@ -278,15 +276,14 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                                 cmdStartVolunteering.setEnabled(false);
                             }
                         });
-                    /*if (currentBusObject != null)
-                        runOnUiThread(() -> currentBusObject.setUserOnline(false));*/
+                    if (currentBusObject != null)
+                        currentBusObject.setUserOnline(false);
                     deactivateInfoChangedListeners();
                 }
             };
         if (volunteerNetworkCallback == null)
             volunteerNetworkCallback = new ConnectivityManager.NetworkCallback() {
                 volatile boolean flg = false;
-
                 void attemptToReconnect() {
                     clearOldNotifications();
                     if (busLocRef == null) {
@@ -301,6 +298,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                     super.onAvailable(network);
                     if (flg && SharedPref.getBoolean(getApplicationContext(), "service_suspended")
                             && CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class)) {
+                        checkRequirementsAndPermissions();
                         sendServiceNotifMessage("Reconnecting to database", "Checking if any volunteer has taken over, please wait...", true);
                         try {
                             connectivityManager.unregisterNetworkCallback(userNetworkCallback);
@@ -341,53 +339,49 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
     }
 
     private void checkRequirementsAndPermissions() {
-        //String currentTime = new SimpleDateFormat("EEE, MMM dd yyyy, hh:mm:ss").format(System.currentTimeMillis() + SharedPref.getLong(getApplicationContext(), "time_offset")).substring(18);
-        DatabaseReference timeRef = FirebaseDatabase.getInstance().getReference("Bus Locations");
-        timeRef.addListenerForSingleValueEvent(new ValueEventListener() {
+        String currentTime = new SimpleDateFormat("EEE, MMM dd yyyy, HH:mm:ss").format(System.currentTimeMillis() + SharedPref.getLong(getApplicationContext(), "time_offset")).substring(18),
+                startTime = SharedPref.getString(getApplicationContext(), "bustracking_starttime"),
+                endTime = SharedPref.getString(getApplicationContext(), "bustracking_endtime");
+        if (currentTime.compareTo(endTime) > 0 || currentTime.compareTo(startTime) < 0) {
+            Toast.makeText(getApplicationContext(), "Cannot start bus tracking feature outside allowed time limits!", Toast.LENGTH_LONG).show();
+            if (CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class)) {
+                Intent i = new Intent(getApplicationContext(), TransmitLocationService.class);
+                i.setAction(TransmitLocationService.ACTION_STOP_FOREGROUND_SERVICE);
+                startService(i);
+                Toast.makeText(getApplicationContext(), "The time now is: " + currentTime + ". You have exceeded the daily time limit allowed to use this feature!", Toast.LENGTH_LONG).show();
+                stopLocationTransmission();
+                unregisterNetworkCallbacks();
+                finish();
+            }
+            return;
+        }
+        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("Bus Locations").child("Rules").child("masterEnable");
+        ref.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                Boolean masterEnable = snapshot.child("masterEnable").getValue(Boolean.class);
-                if (masterEnable == null || !masterEnable) {// || startTime == null || endTime == null) {
+                Boolean masterEnable = snapshot.getValue(Boolean.class);
+                if (masterEnable == null || !masterEnable) {
                     Toast.makeText(getApplicationContext(), "Cannot start the bus tracking feature! Master switch is off!", Toast.LENGTH_LONG).show();
                     if (CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class)) {
                         Intent i = new Intent(getApplicationContext(), TransmitLocationService.class);
                         i.putExtra("routeNo", getIntent().getStringExtra("routeNo"));
                         i.putExtra("deleteDBValue", true);
+                        i.putExtra("suspendFlag", true);
                         i.setAction(TransmitLocationService.ACTION_STOP_FOREGROUND_SERVICE);
                         startService(i);
                     }
                     Bungee.slideRight(MapActivity.this);
                     finish();
                     startActivity(new Intent(MapActivity.this, BusRoutesActivity.class));
-                } /*else if (Objects.equals(s.substring(0, 3), "Sun")) { //Example s: "Sat, Jul 04 2020, 11:14:47"
-                                    Toast.makeText(context, "Cannot start bus tracking feature on Sundays!", Toast.LENGTH_LONG).show();
-                                    for (BusRouteViewHolder i : holders)
-                                        i.busRouteCV.setEnabled(true);
-                                    return;
-                                }
-                                else if (currentTime < startTime) {
-                                    Toast.makeText(context, "Cannot use the bus tracking feature until " + SimpleDateFormat.getTimeInstance().format(startTime) + "!", Toast.LENGTH_LONG).show();
-                                    return;
-                                }
-                                else if (currentTime > endTime) {
-                                    Toast.makeText(context, "Cannot use the bus tracking feature beyond " + SimpleDateFormat.getTimeInstance().format(endTime) + "!", Toast.LENGTH_LONG).show();
-                                    return;
-                                } */
-
-                timeRef.removeEventListener(this);
+                    return;
+                }
+                ref.removeEventListener(this);
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
             }
         });
-        String currentTime = "07:00:00";
-        if (currentTime.compareTo("08:00:00") > 0 || currentTime.compareTo("06:00:00") < 0) {
-            Toast.makeText(getApplicationContext(), "The time now is: " + currentTime + ". You have exceeded the daily time limit allowed to use this feature!", Toast.LENGTH_LONG).show();
-            stopLocationTransmission();
-            unregisterNetworkCallbacks();
-            finish();
-        }
     }
 
     private void resolveVolunteerStatus() {
@@ -609,7 +603,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                 unregisterNetworkCallbacks();
                 SharedPref.putBoolean(getApplicationContext(), "stopbutton", false);
                 finish();
-                startActivity(new Intent(getApplicationContext(), MapActivity.class).putExtra("routeNo", routeNo).putExtra("improper_shutdown", true));
+                startActivity(new Intent(getApplicationContext(), MapActivity.class).putExtra("routeNo", routeNo).putExtra("improper_shutdown", true).setFlags(Intent.FLAG_RECEIVER_FOREGROUND));
                 return;
             } else {
                 enableControls();
@@ -645,7 +639,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                 pd.setMessage("Attempting to start background service...");
                 pd.setCancelable(false);
                 pd.show();
-                checkRequirementsAndPermissions();
                 busLocRef.addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -716,6 +709,37 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         });
         if (currentBusObject != null && CommonUtils.alerter(this))
             currentBusObject.setUserOnline(false);
+
+        //start time end time listeners.
+        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("Bus Locations").child("Rules");
+        ref.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                String start = snapshot.child("startTime").getValue(String.class),
+                        end = snapshot.child("endTime").getValue(String.class);
+                Boolean masterEnable = snapshot.child("masterEnable").getValue(Boolean.class);
+                if (masterEnable == null || !masterEnable) {
+                    if (CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class))
+                        stopLocationTransmission();
+
+                    unregisterNetworkCallbacks();
+                    deactivateInfoChangedListeners();
+                    if (routeExistslistener != null && busLocRef != null)
+                        busLocRef.removeEventListener(routeExistslistener);
+                    finish();
+                    return;
+                }
+                if (start != null && end != null) {
+                    SharedPref.putString(getApplicationContext(), "bustracking_starttime", start);
+                    SharedPref.putString(getApplicationContext(), "bustracking_endtime", end);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
     }
 
     private void showSwitchOffGPSDialog() {
@@ -745,10 +769,11 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                     String s = dataSnapshot.child("currentSharerID").getValue(String.class);
                     Boolean b = dataSnapshot.child("sharingLoc").getValue(Boolean.class);
                     if (CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class) && s != null && !s.equals("null") && !s.equals(SharedPref.getString(getApplicationContext(), "email")) && b != null && b) {
-                        stopLocationTransmission(false);
-                        if (currentBusObject != null) currentBusObject.setUserOnline(false);
+                        busLocRef.child("sharingLoc").setValue(false);
                         enableControls();
                         cmdStartVolunteering.setImageResource(R.drawable.ic_location_on_disabled);
+                        showNotification(3, Constants.BUS_TRACKING_NOTIFS_CHANNELID, "Concurrency detected!", "Another volunteer started sharing their location at the same time as you! One of you has been rejected by the system. Please check if your bus has a volunteer currently!", MapActivity.this, new Intent(MapActivity.this, MapActivity.class).putExtra("routeNo", routeNo == null ? SharedPref.getString(getApplicationContext(), "routeNo") : routeNo));
+                        Toast.makeText(getApplicationContext(), "Concurrency detected! One of you has been rejected by the system. Please check if your bus has a volunteer currently!", Toast.LENGTH_LONG).show();
                         cmdStartVolunteering.setEnabled(false);
                         switchToUserNetworkCallback();
                     }
@@ -787,6 +812,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                         i.setAction(TransmitLocationService.ACTION_START_FOREGROUND_SERVICE);
                         i.putExtra("routeNo", routeNo);
                         i.putExtra("suspendFlag", false);
+                        i.setFlags(Intent.FLAG_RECEIVER_FOREGROUND);
                         startService(i);
                         isSharingLoc = true;
                     });
@@ -794,8 +820,10 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                     switchToVolunteerNetworkCallback();
                     i = new Intent(getApplicationContext(), TransmitLocationService.class);
                     i.setAction(TransmitLocationService.ACTION_START_FOREGROUND_SERVICE);
+                    i.setFlags(Intent.FLAG_RECEIVER_FOREGROUND);
                     i.putExtra("routeNo", routeNo);
                     i.putExtra("suspendFlag", false);
+                    i.setFlags(Intent.FLAG_RECEIVER_FOREGROUND);
                     startService(i);
                     isSharingLoc = true;
                 }
@@ -813,6 +841,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         i.setAction(TransmitLocationService.ACTION_CHANGE_NOTIFICATION_MESSAGE);
         i.putExtra("routeNo", routeNo);
         i.putExtra("suspendFlag", true);
+        i.setFlags(Intent.FLAG_RECEIVER_FOREGROUND);
         i.putExtra("messageTitle", "Location sharing suspended");
         i.putExtra("messageContent", "We'll auto-restart location sharing once you're back online in some time.");
         startService(i);
@@ -873,6 +902,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         i.putExtra("routeNo", routeNo);
         i.putExtra("messageTitle", messageTitle);
         i.putExtra("suspendFlag", suspendFlag);
+        i.setFlags(Intent.FLAG_RECEIVER_FOREGROUND);
         i.putExtra("messageContent", messageContent);
         startService(i);
     }
@@ -888,8 +918,8 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         Collections.addAll(permissionsRequired, Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            //if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
-            //  permissionsRequired.add(Manifest.permission.ACCESS_BACKGROUND_LOCATION);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
+                permissionsRequired.add(Manifest.permission.ACCESS_BACKGROUND_LOCATION);
             Iterator<String> permissionsIterator = permissionsRequired.iterator();
             while (permissionsIterator.hasNext()) {
                 if (ContextCompat.checkSelfPermission(this, permissionsIterator.next()) == PackageManager.PERMISSION_GRANTED)
@@ -1542,7 +1572,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         super.onDestroy();
         if (!CommonUtils.isMyServiceRunning(this, TransmitLocationService.class)) {
             unregisterNetworkCallbacks();
-
         }
         if (googleMap != null && busTrackingMap != null) busTrackingMap.onDestroy();
     }
@@ -1560,7 +1589,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
 
     @Override
     public void onResume() {
-        checkRequirementsAndPermissions();
         try {
             super.onResume();
             if (busTrackingMap != null && googleMap != null) {
@@ -1572,10 +1600,11 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                 }
             }
         } catch (Exception e) {
-            Toast.makeText(getApplicationContext(), "ERROR: " + e.getMessage() + "\nCAUSE: " + e.getCause(), Toast.LENGTH_LONG).show();
+            //Toast.makeText(getApplicationContext(), "ERROR: " + e.getMessage() + "\nCAUSE: " + e.getCause(), Toast.LENGTH_LONG).show();
             recreate();
             e.printStackTrace();
         }
+        checkRequirementsAndPermissions();
     }
 
     @Override
@@ -1604,7 +1633,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
     @Override
     protected void onStart() {
         super.onStart();
-        checkRequirementsAndPermissions();
         initNetworkCallbacks();
         if (googleMap != null) {
             busTrackingMap.onStart();
