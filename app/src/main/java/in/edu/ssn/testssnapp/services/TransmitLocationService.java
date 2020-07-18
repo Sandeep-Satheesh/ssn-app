@@ -58,10 +58,10 @@ public class TransmitLocationService extends Service implements LocationListener
                 locationManager = (LocationManager) this.getSystemService(LOCATION_SERVICE);
                 routeNo = intent.getStringExtra("routeNo");
                 suspendFlag = intent.getBooleanExtra("suspendFlag", true);
+                SharedPref.putBoolean(getApplicationContext(), "service_suspended", suspendFlag);
                 userID = SharedPref.getString(getApplicationContext(), "email");
                 busLocDBRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo);
                 validateCurrentTime();
-
                 try {
                     unregisterReceiver(systemTimeChangedReceiver);
                 } catch (Exception e) {
@@ -103,6 +103,12 @@ public class TransmitLocationService extends Service implements LocationListener
                 locationManager = (LocationManager) this.getSystemService(LOCATION_SERVICE);
                 routeNo = intent.getStringExtra("routeNo");
                 suspendFlag = intent.getBooleanExtra("suspendFlag", true);
+                SharedPref.putBoolean(getApplicationContext(), "service_suspended", suspendFlag);
+
+                if (suspendFlag) {
+                    int disruptionCount = SharedPref.getInt(getApplicationContext(), "disruption_count");
+                    SharedPref.putInt(getApplicationContext(), "disruption_count", disruptionCount + 1);
+                }
                 userID = SharedPref.getString(getApplicationContext(), "email");
                 busLocDBRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo);
                 validateCurrentTime();
@@ -117,6 +123,7 @@ public class TransmitLocationService extends Service implements LocationListener
                 locationManager = (LocationManager) this.getSystemService(LOCATION_SERVICE);
                 routeNo = intent.getStringExtra("routeNo");
                 suspendFlag = intent.getBooleanExtra("suspendFlag", true);
+                SharedPref.putBoolean(getApplicationContext(), "service_suspended", false);
                 userID = SharedPref.getString(getApplicationContext(), "email");
                 if (routeNo != null && !routeNo.isEmpty())
                     busLocDBRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo);
@@ -128,9 +135,13 @@ public class TransmitLocationService extends Service implements LocationListener
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-                if (busLocDBRef != null && intent.getBooleanExtra("deleteDBValue", false))
-                    busLocDBRef.removeValue();
-
+                if (busLocDBRef != null) {
+                    busLocDBRef.child("currentSharerID").onDisconnect().cancel();
+                    busLocDBRef.child("sharingLoc").onDisconnect().cancel();
+                    if (intent.getBooleanExtra("deleteDBValue", false)) {
+                        busLocDBRef.removeValue();
+                    }
+                }
                 stopForeground(true);
                 stopSelf();
 

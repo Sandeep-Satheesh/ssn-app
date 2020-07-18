@@ -102,7 +102,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
     volatile Boolean isSharingLoc = false;
     LatLng SSNCEPoint = new LatLng(12.7525, 80.196111);
     GoogleMap googleMap;
-    volatile DataSnapshot initialSnapshot;
     MapView busTrackingMap;
     ConnectivityManager.NetworkCallback userNetworkCallback, volunteerNetworkCallback;
     NetworkRequest networkRequest;
@@ -124,6 +123,9 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (!CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class))
+            SharedPref.putBoolean(getApplicationContext(), "service_suspended", false);
+
         if (CommonUtils.alerter(this)) {
             if (!CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class)) {
                 startActivity(new Intent(this, NoNetworkActivity.class).putExtra("key", "null"));
@@ -154,7 +156,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         fabRecentre = findViewById(R.id.fab_recenter);
         fabRecentre.setVisibility(View.GONE);
         clearOldNotifications();
-
         Boolean b = getIntent().getBooleanExtra("improper_shutdown", false);
         if (!b && !CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class))
             new CountDownTimer(waittime, 1000) {
@@ -249,139 +250,93 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                         }
                         return;
                     }
-                    if (isVolunteerOfThisBus() && getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED))
-                        runOnUiThread(() -> {
+                    runOnUiThread(() -> {
+                        if (isVolunteerOfThisBus() && getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED)) {
                         /*if (getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED))
                             tvVolunteerDetails.setText("Reconnecting...");*/
-                            if (CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class)) {
-                                tvNoVolunteer.setText(R.string.no_location_value);
+                            if (CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class))
                                 disableControls();
-                            }
+
                             if (cmdStartVolunteering != null && !cmdStartVolunteering.isEnabled()) {
                                 cmdStartVolunteering.setImageResource(R.drawable.ic_location_on);
                                 cmdStartVolunteering.setEnabled(true);
                             }
-                        });
+                        }
+                        tvNoVolunteer.setText(R.string.fetching_location);
+                        if (busTrackingMap != null && busTrackingMap.getVisibility() == View.VISIBLE && tvVolunteerDetails != null)
+                            tvVolunteerDetails.setText("Reconnecting...");
+                    });
                 }
 
                 @Override
                 public void onLost(@NonNull Network network) {
                     super.onLost(network);
-                    if (isVolunteerOfThisBus() && getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED))
+                    if (isVolunteerOfThisBus() && getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.RESUMED))
                         runOnUiThread(() -> {
                             if (getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED) && cmdStartVolunteering.isEnabled()) {
                                 cmdStartVolunteering.setImageResource(R.drawable.ic_location_on_disabled);
                                 cmdStartVolunteering.setEnabled(false);
                             }
                         });
-                    if (currentBusObject != null)
-                        runOnUiThread(() -> currentBusObject.setUserOnline(false));
+                    /*if (currentBusObject != null)
+                        runOnUiThread(() -> currentBusObject.setUserOnline(false));*/
                     deactivateInfoChangedListeners();
                 }
             };
         if (volunteerNetworkCallback == null)
             volunteerNetworkCallback = new ConnectivityManager.NetworkCallback() {
-                volatile boolean isServiceSuspended = false;
+                volatile boolean flg = false;
 
                 void attemptToReconnect() {
                     clearOldNotifications();
                     if (busLocRef == null) {
                         busLocRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(SharedPref.getString(getApplicationContext(), "routeNo"));
                     }
-                    busLocRef.child("sharingLoc").onDisconnect().cancel();
-                    busLocRef.child("currentSharerID").onDisconnect().cancel();
                     resolveVolunteerStatus();
-                    isServiceSuspended = false;
                 }
 
                 @Override
 
                 public void onAvailable(@NonNull Network network) { //volunteer
                     super.onAvailable(network);
-                    if (!(currentBusObject == null && CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class) && !isServiceSuspended))
-                        if (currentBusObject == null || currentBusObject.isSharerOnline())
-                            return;
-                        else runOnUiThread(() -> {
-                            if (!currentBusObject.isSharerOnline())
-                                currentBusObject.setUserOnline(false);
-                        });
-                    else if (currentBusObject != null && !currentBusObject.isSharerOnline())
-                        runOnUiThread(() -> currentBusObject.setUserOnline(false));
-
-                    if (currentBusObject != null && !isServiceSuspended) return;
-                    isServiceSuspended = false;
-                    checkRequirementsAndPermissions();
-                    if (!cmdStartVolunteering.isEnabled()) {
-                        runOnUiThread(() -> {
-                            cmdStartVolunteering.setImageResource(R.drawable.ic_location_on);
-                            cmdStartVolunteering.setEnabled(false);
-                        });
-                    }
-                    int disruptionCount = SharedPref.getInt(getApplicationContext(), "disruption_count");
-                    if (disruptionCount < Constants.MAX_LOCSHARE_RETRIES_ALLOWED) {
-                        if (currentBusObject == null || !currentBusObject.isSharerOnline()) {
-                            sendServiceNotifMessage("Reconnecting to database", "Checking if any volunteer has taken over, please wait...", true);
-                            if (Looper.getMainLooper() == Looper.myLooper()) {
-                                if (novolunteerLL != null && novolunteerLL.getVisibility() == View.VISIBLE && getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED))
-                                    tvNoVolunteer.setText(R.string.no_location_value);
-                                else {
-                                    tvVolunteerDetails.setText(R.string.fetching_location);
-                                    cmdStartVolunteering.setImageResource(R.drawable.ic_location_on);
-                                    cmdStartVolunteering.setEnabled(true);
-                                    disableControls();
-                                }
-                            } else runOnUiThread(() -> {
-                                if (novolunteerLL.getVisibility() == View.VISIBLE && getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED))
-                                    tvNoVolunteer.setText(R.string.no_location_value);
-                                else {
-                                    tvVolunteerDetails.setText("Fetching data..." + "\nThis can take a while if you are not on a moving bus.");
-                                    cmdStartVolunteering.setImageResource(R.drawable.ic_location_on);
-                                    cmdStartVolunteering.setEnabled(true);
-                                    disableControls();
-                                }
-                            });
-                            attemptToReconnect();
+                    if (flg && SharedPref.getBoolean(getApplicationContext(), "service_suspended")
+                            && CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class)) {
+                        sendServiceNotifMessage("Reconnecting to database", "Checking if any volunteer has taken over, please wait...", true);
+                        try {
+                            connectivityManager.unregisterNetworkCallback(userNetworkCallback);
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
-                    } else {
-                        unregisterNetworkCallbacks();
-                        stopLocationTransmission(false);
-                        /*Toast.makeText(getApplicationContext(),
-                                "Your network connection seems to be unstable, or you are restarting sharing too frequently. The service has been stopped. Please check your connection for stability, and then go back into the app to start volunteering!", Toast.LENGTH_LONG).show();
-                        showNotification(3, Constants.BUS_TRACKING_NOTIFS_CHANNELID, "Auto-stopped volunteering",
-                                "Your network connection seems to be unstable, or you are restarting sharing too frequently. The service has been stopped. Please check your connection for stability, and then go back into the app to start volunteering!", MapActivity.this, new Intent());*/
-                        finish();
-
+                        flg = false;
+                        attemptToReconnect();
                     }
                 }
 
                 @Override
                 public void onLost(@NonNull Network network) { //volunteer
                     super.onLost(network);
-                    if (isServiceSuspended) return;
-                    deactivateInfoChangedListeners();
-                    if (currentBusObject != null)
-                        if (Looper.myLooper() == Looper.getMainLooper())
-                            currentBusObject.setUserOnline(false);
-                        else runOnUiThread(() -> currentBusObject.setUserOnline(false));
-                    else return;
-                    int disruptionCount = SharedPref.getInt(getApplicationContext(), "disruption_count");
-                    SharedPref.putInt(getApplicationContext(), "disruption_count", disruptionCount + 1);
-                    if (disruptionCount >= Constants.MAX_LOCSHARE_RETRIES_ALLOWED) {
-                        unregisterNetworkCallbacks();
-                        stopLocationTransmission(false);
-                        Toast.makeText(getApplicationContext(),
-                                "Your network connection seems to be unstable, or you are restarting sharing too frequently. The service has been stopped. Please check your connection for stability, and then go back into the app to start volunteering!", Toast.LENGTH_LONG).show();
-                        showNotification(3, Constants.BUS_TRACKING_NOTIFS_CHANNELID, "Auto-stopped volunteering",
-                                "Your network connection seems to be unstable, or you are restarting sharing too frequently. The service has been stopped. Please check your connection for stability, and then go back into the app to start volunteering!", MapActivity.this, new Intent());
-                        finish();
-                        return;
+                    if (!flg && CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class)
+                            && !SharedPref.getBoolean(getApplicationContext(), "service_suspended")) {
+                        flg = true;
+                        int disruptionCount = SharedPref.getInt(getApplicationContext(), "disruption_count");
+
+                        if (disruptionCount >= Constants.MAX_LOCSHARE_RETRIES_ALLOWED) {
+                            unregisterNetworkCallbacks();
+                            stopLocationTransmission(false);
+                            Toast.makeText(getApplicationContext(),
+                                    "Your network connection seems to be unstable, or you are restarting sharing too frequently. The service has been stopped. Please check your connection for stability, and then go back into the app to start volunteering!", Toast.LENGTH_LONG).show();
+                            showNotification(3, Constants.BUS_TRACKING_NOTIFS_CHANNELID, "Auto-stopped volunteering",
+                                    "Your network connection seems to be unstable, or you are restarting sharing too frequently. The service has been stopped. Please check your connection for stability, and then go back into the app to start volunteering!", MapActivity.this, new Intent());
+                            finish();
+                            return;
+                        }
+                        suspendLocationTransmission();
+                        deactivateInfoChangedListeners();
+                        if (currentBusObject != null)
+                            runOnUiThread(() -> currentBusObject.setUserOnline(false));
                     }
-                    isServiceSuspended = true;
-                    suspendLocationTransmission();
                 }
             };
-        if (CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class) || isSharingLoc)
-            return;
         connectivityManager.registerNetworkCallback(networkRequest, userNetworkCallback);
     }
 
@@ -444,8 +399,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         if (userId == null || userId.isEmpty())
             userId = SharedPref.getString(getApplicationContext(), "email");
 
-        busLocRef.keepSynced(true);
-
         //write some test data and check for the state of other values.
         busLocRef.child("testdata").setValue(true,
                 (error, ref) -> busLocRef.addListenerForSingleValueEvent(new ValueEventListener() {
@@ -459,10 +412,11 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                                     || isSharingLoc == null || !isSharingLoc)
                                 finalizeDecisionToReconnect();
                             else {
-                                showNotification(2, Constants.BUS_TRACKING_NOTIFS_CHANNELID, "The background service has been stopped", "Another volunteer has taken over since your last disconnection! Thank you for your services!", MapActivity.this, new Intent());
                                 stopLocationTransmission(false);
                                 switchToUserNetworkCallback();
+                                showNotification(2, Constants.BUS_TRACKING_NOTIFS_CHANNELID, "The background service has been stopped", "Another volunteer has taken over since your last disconnection! Thank you for your services!", MapActivity.this, new Intent());
                             }
+                            deactivateInfoChangedListeners();
                         } else {
                             Log.e("RECONNECTION ERROR:", "MESSAGE: " + error.getMessage() + "\nDETAILS: " + error.getDetails());
                             stopLocationTransmission(false);
@@ -487,10 +441,12 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                     FCMHelper.clearNotification(2, Constants.BUS_TRACKING_NOTIFS_CHANNELID, MapActivity.this);
                     startTime = System.currentTimeMillis();
                     runOnUiThread(this::disableControls);
-                    restartLocationTransmission();
+                    deactivateInfoChangedListeners();
+                    startLocationTransmission();
                 } else {
                     Toast.makeText(getApplicationContext(), "Your GPS is not enabled! Cannot auto-restart location sharing!", Toast.LENGTH_SHORT).show();
                     isSharingLoc = false;
+                    deactivateInfoChangedListeners();
                     attemptToEnableGPS();
                 }
             } else {
@@ -501,15 +457,18 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         } else if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             FCMHelper.clearNotification(2, Constants.BUS_TRACKING_NOTIFS_CHANNELID, MapActivity.this);
             runOnUiThread(() -> {
+                FCMHelper.clearNotification(2, Constants.BUS_TRACKING_NOTIFS_CHANNELID, MapActivity.this);
                 startTime = System.currentTimeMillis();
-                updateTimeElapsedTextViews();
                 disableControls();
+                deactivateInfoChangedListeners();
+                startLocationTransmission();
             });
 
         } else {
             Toast.makeText(getApplicationContext(), "Your GPS is not enabled! Cannot auto-restart location sharing!", Toast.LENGTH_SHORT).show();
             if (cmdStartVolunteering == null) unregisterNetworkCallbacks();
             else switchToUserNetworkCallback();
+            deactivateInfoChangedListeners();
             attemptToEnableGPS();
         }
     }
@@ -535,6 +494,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         tvLastUpdatedTimeUnit.setText("");
 
         routeNo = getIntent().getStringExtra("routeNo");
+        hideMapView();
 
         AlphaAnimation fadeIn = new AlphaAnimation(0, 1);
         fadeIn.setDuration(1000);
@@ -549,10 +509,10 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
             onBackPressed();
         });
         busLocRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo);
-        busLocRef.keepSynced(true);
         routeExistslistener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                //if (getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED))
                 if (dataSnapshot.child("timeLimitViolation").getValue(Boolean.class) != null) {
                     Boolean timeLimitViolation = dataSnapshot.child("timeLimitViolation").getValue(Boolean.class);
                     if (timeLimitViolation) {
@@ -561,7 +521,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                         else tvNoVolunteer.setText(R.string.no_volunteer_available);
                         return;
                     }
-                    hideMapView();
                     Toast.makeText(getApplicationContext(), "You have exceeded the daily time limit allowed to use this feature!", Toast.LENGTH_LONG).show();
                     if (CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class))
                         stopLocationTransmission();
@@ -585,52 +544,35 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                     }
                 } else {
                     startTime = System.currentTimeMillis();
-                    showTimeElapsedTV = true;
                     String latLongString = dataSnapshot.child("latLong").getValue(String.class), sharerId = dataSnapshot.child("currentSharerID").getValue(String.class);
                     int speed = dataSnapshot.child("speed").getValue() != null ? (int) (dataSnapshot.child("speed").getValue(int.class) * 3.6 < 1 ? 0 : dataSnapshot.child("speed").getValue(int.class) * 3.6) : 0;
                     if (latLongString == null || latLongString.isEmpty() || sharerId == null || sharerId.equals("null"))
                         return;
-                    if (CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class) || !sharerId.equals(SharedPref.getString(getApplicationContext(), "email")))
-                        updateTimeElapsedTextViews();
-                    try {
-                        int sep = latLongString.indexOf(',');
-                        LatLng currentlatLongs = new LatLng(sep == 1 ? 0 : Double.parseDouble(latLongString.substring(0, sep - 1)), sep == 1 ? 0 : Double.parseDouble(latLongString.substring(sep + 1)));
-                        if (currentBusObject == null)
-                            currentBusObject = createBusObject(sharerId, currentlatLongs, speed);
-
-                        else {
-                            currentBusObject.setLocation(currentlatLongs, handler, googleMap);
-                            googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentlatLongs, 18f));
-                        }
-                        busTrackingMap.onResume();
-                        if (CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class))
-                            disableControls();
-                        else if (!sharerId.equals(userId)) {
-                            cmdStartVolunteering.setImageResource(R.drawable.ic_location_on_disabled);
-                            cmdStartVolunteering.setEnabled(false);
-                        }
-                        updateListenerToMain = true;
-                        showMapView();
-                        activateInfoChangedListeners();
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                    if (CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class)) {
+                        disableControls();
                     }
-                }/* else if (!CommonUtils.alerter(getApplicationContext())) {
-                    if (isVolunteerOfThisBus()) {
-                        if (CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class)) {
-                            tvNoVolunteer.setText(R.string.fetching_location);
-                            disableControls();
-                        } else
-                            tvNoVolunteer.setText(R.string.would_you_like_to_volunteer);
-                    } else
-                        tvNoVolunteer.setText(R.string.no_volunteer_available);
-                    hideMapView();
 
-                } else {
-                    if (isBusVolunteer)
-                        tvNoVolunteer.setText(R.string.start_volunteering_offlinemsg);
+                    int sep = latLongString.indexOf(',');
+                    LatLng currentlatLongs = new LatLng(sep == 1 ? 0 : Double.parseDouble(latLongString.substring(0, sep - 1)), sep == 1 ? 0 : Double.parseDouble(latLongString.substring(sep + 1)));
+                    if (currentBusObject == null)
+                        currentBusObject = createBusObject(sharerId, currentlatLongs, speed);
                     else
-                        tvNoVolunteer.setText(R.string.user_offline);
+                        currentBusObject.setLocation(currentlatLongs, handler, googleMap);
+
+                    if (busTrackingMap != null && googleMap != null && isMapLoaded) {
+                        tvNoVolunteer.setText("Loading...");
+                        showMapView();
+                        updateListenerToMain = true;
+                        showTimeElapsedTV = true;
+                        activateInfoChangedListeners();
+                    }
+                }
+                /*else {
+                    if (!isVolunteerOfThisBus()) unregisterNetworkCallbacks();
+                    showTimeElapsedTV = false;
+                    if (timer != null) timer.cancel();
+                    deactivateInfoChangedListeners();
+                    busLocRef.removeEventListener(this);
                 }*/
             }
 
@@ -652,17 +594,9 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         } else {
             cmdStartVolunteering.startAnimation(fadeIn);
 
-            /*if (CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class)) {
-                disableControls();
-                switchToVolunteerNetworkCallback();
-                if (CommonUtils.alerter(this)) {
-                    tvNoVolunteer.setText(R.string.start_volunteering_offlinemsg);
-                } else
-                    tvNoVolunteer.setText(R.string.no_location_value);
-            } else tvNoVolunteer.setText(R.string.would_you_like_to_volunteer);
-*/
             if (CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class)) {
                 disableControls();
+                switchToVolunteerNetworkCallback();
                 Toast.makeText(getApplicationContext(), "Access granted!", Toast.LENGTH_SHORT).show();
                 if (CommonUtils.alerter(this))
                     tvNoVolunteer.setText(R.string.volunteer_offline);
@@ -677,8 +611,9 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                 finish();
                 startActivity(new Intent(getApplicationContext(), MapActivity.class).putExtra("routeNo", routeNo).putExtra("improper_shutdown", true));
                 return;
-            } else
+            } else {
                 enableControls();
+            }
             //pd = darkModeEnabled ? new ProgressDialog(this, R.style.DarkThemeDialog) : new ProgressDialog(this);
 
             cmdStartVolunteering.setOnClickListener(v -> {
@@ -772,13 +707,15 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                         }).show();
             });
         }
-        tvVolunteerDetails.setVisibility(View.INVISIBLE);
+        tvVolunteerDetails.setText("");
         fabRecentre.setOnClickListener(v -> {
             if (currentBusObject == null || currentBusObject.getLocation() == null) {
                 googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(SSNCEPoint, 18f));
             } else
                 googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentBusObject.getLocation(), 18f));
         });
+        if (currentBusObject != null && CommonUtils.alerter(this))
+            currentBusObject.setUserOnline(false);
     }
 
     private void showSwitchOffGPSDialog() {
@@ -822,28 +759,21 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                 }
             };
         if (busTrackingMap != null) {
-            if (Looper.getMainLooper() == Looper.myLooper()) {
-                if (busTrackingMap.getVisibility() != View.VISIBLE)
-                    tvNoVolunteer.setText(R.string.fetching_location);
-                else
-                    tvVolunteerDetails.setText(R.string.fetching_location);
-
-                cmdStartVolunteering.setImageResource(R.drawable.ic_location_on);
-                cmdStartVolunteering.setEnabled(true);
-                disableControls();
-            } else runOnUiThread(() -> {
-                if (getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED) && getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED))
+            runOnUiThread(() -> {
+                if (getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED)) {
                     if (busTrackingMap.getVisibility() != View.VISIBLE)
                         tvNoVolunteer.setText(R.string.fetching_location);
                     else
                         tvVolunteerDetails.setText(R.string.fetching_location);
-                if (getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED))
+
                     cmdStartVolunteering.setImageResource(R.drawable.ic_location_on);
-                if (getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED))
                     cmdStartVolunteering.setEnabled(true);
-                disableControls();
+                    disableControls();
+                }
             });
         }
+        if (busLocRef == null)
+            busLocRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo == null ? SharedPref.getString(getApplicationContext(), "routeNo") : routeNo);
         busLocRef.addValueEventListener(concurrentVolunteerListener);
         //remove old values, if any.
         busLocRef.addListenerForSingleValueEvent(new ValueEventListener() {
@@ -852,6 +782,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                 String s = snapshot.child("latLong").getValue(String.class);
                 if (s != null)
                     busLocRef.removeValue((error, ref) -> {
+                        switchToVolunteerNetworkCallback();
                         i = new Intent(getApplicationContext(), TransmitLocationService.class);
                         i.setAction(TransmitLocationService.ACTION_START_FOREGROUND_SERVICE);
                         i.putExtra("routeNo", routeNo);
@@ -860,6 +791,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                         isSharingLoc = true;
                     });
                 else {
+                    switchToVolunteerNetworkCallback();
                     i = new Intent(getApplicationContext(), TransmitLocationService.class);
                     i.setAction(TransmitLocationService.ACTION_START_FOREGROUND_SERVICE);
                     i.putExtra("routeNo", routeNo);
@@ -874,19 +806,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
 
             }
         });
-    }
-
-    private void restartLocationTransmission() {
-        deactivateInfoChangedListeners();
-        startLocationTransmission();
-        if (busLocRef == null)
-            busLocRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(SharedPref.getString(getApplicationContext(), "routeNo"));
-        busLocRef.keepSynced(true);
-        if (Looper.myLooper() == Looper.getMainLooper())
-            tvNoVolunteer.setText(R.string.no_location_value);
-        else runOnUiThread(() -> tvNoVolunteer.setText(R.string.no_location_value));
-        if (routeExistslistener != null)
-            busLocRef.addValueEventListener(routeExistslistener);
     }
 
     private void suspendLocationTransmission() {
@@ -906,6 +825,9 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
     private void stopLocationTransmission(boolean deleteDBValue) {
         FCMHelper.clearNotification(2, Constants.BUS_TRACKING_NOTIFS_CHANNELID, MapActivity.this);
         if (routeNo == null) routeNo = SharedPref.getString(getApplicationContext(), "routeNo");
+        if (tvNoVolunteer != null && novolunteerLL != null && novolunteerLL.getVisibility() == View.VISIBLE) {
+            runOnUiThread(() -> tvNoVolunteer.setText(R.string.would_you_like_to_volunteer));
+        }
         SharedPref.putString(getApplicationContext(), "routeNo", "");
         SharedPref.putBoolean(getApplicationContext(), "stopbutton", false);
         isSharingLoc = false;
@@ -1165,8 +1087,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         googleMap.setOnMarkerClickListener(this);
         isMapLoaded = true;
         if (pd != null) pd.dismiss();
-        if (initialSnapshot == null)
-            hideMapView();
     }
 
     private void activateInfoChangedListeners() {
@@ -1179,98 +1099,91 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                             runOnUiThread(() -> tvVolunteerDetails.setText("No data available currently."));
                     } else runOnUiThread(() -> tvVolunteerDetails.setVisibility(View.VISIBLE));
 
-                    if (locationChangedListener == null)
-                        locationChangedListener = new ValueEventListener() {
-                            @Override
-                            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                                String latLongString = dataSnapshot.getValue(String.class);
-                                if (latLongString == null) {
-                                    return;
+                    locationChangedListener = new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                            String latLongString = dataSnapshot.getValue(String.class);
+                            if (latLongString == null) {
+                                return;
+                            }
+                            int sep = latLongString.indexOf(',');
+                            LatLng currentlatLongs = new LatLng(sep == 1 ? 0 : Double.parseDouble(latLongString.substring(0, sep - 1)), sep == 1 ? 0 : Double.parseDouble(latLongString.substring(sep + 1)));
+                            currentBusObject.setLocation(currentlatLongs, handler, googleMap);
+                            startTime = System.currentTimeMillis();
+                            updateTimeElapsedTextViews();
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError error) {
+                        }
+                    };
+                    onlineStatusChangedListener = new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                            Boolean isSharingLoc = dataSnapshot.getValue(Boolean.class);
+                            if (currentBusObject == null) return;
+                            if (isSharingLoc == null) {
+                                if (!currentBusObject.isSharerOnline()) return;
+                                if (isVolunteerOfThisBus()) {
+                                    showTimeElapsedTV = false;
+                                    hideLastUpdatedTV();
                                 }
-                                int sep = latLongString.indexOf(',');
-                                LatLng currentlatLongs = new LatLng(sep == 1 ? 0 : Double.parseDouble(latLongString.substring(0, sep - 1)), sep == 1 ? 0 : Double.parseDouble(latLongString.substring(sep + 1)));
-                                if (currentBusObject.getLocation() == null)
-                                    runOnUiThread(() -> googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentlatLongs, 18f)));
-                                currentBusObject.setLocation(currentlatLongs, handler, googleMap);
+                                currentBusObject.setUserOnline(false);
+                                Thread.currentThread().interrupt();
+                            } else if (currentBusObject.isSharerOnline() != isSharingLoc) {
+                                showTimeElapsedTV = true;
+                                currentBusObject.setUserOnline(isSharingLoc);
+                                if (isVolunteerOfThisBus() && !isSharingLoc) {
+                                    if (getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.RESUMED) && !cmdStartVolunteering.isEnabled()) {
+                                        runOnUiThread(() -> {
+                                            cmdStartVolunteering.setImageResource(R.drawable.ic_location_on);
+                                            cmdStartVolunteering.setEnabled(true);
+                                        });
+                                    }
+                                }
                                 startTime = System.currentTimeMillis();
                                 updateTimeElapsedTextViews();
                             }
+                        }
 
-                            @Override
-                            public void onCancelled(@NonNull DatabaseError error) {
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError error) {
+                        }
+                    };
+                    speedChangedListener = new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                            Integer speed = dataSnapshot.getValue(Integer.class);
+                            if (speed != null) {
+                                currentBusObject.setSpeed((int) (speed * 3.6));
+                                startTime = System.currentTimeMillis();
+                                updateTimeElapsedTextViews();
                             }
-                        };
-                    if (onlineStatusChangedListener == null)
-                        onlineStatusChangedListener = new ValueEventListener() {
-                            @Override
-                            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                                Boolean isSharingLoc = dataSnapshot.getValue(Boolean.class);
-                                if (currentBusObject == null) return;
-                                if (isSharingLoc == null) {
-                                    if (!currentBusObject.isSharerOnline()) return;
-                                    deactivateInfoChangedListeners();
-                                    if (isVolunteerOfThisBus()) {
-                                        showTimeElapsedTV = false;
-                                        hideLastUpdatedTV();
-                                    }
-                                    currentBusObject.setUserOnline(false);
-                                    runOnUiThread(() -> busLocRef.addValueEventListener(routeExistslistener));
-                                    Thread.currentThread().interrupt();
-                                } else if (currentBusObject.isSharerOnline() != isSharingLoc) {
-                                    currentBusObject.setUserOnline(isSharingLoc);
-                                    if (isVolunteerOfThisBus() && !isSharingLoc) {
-                                        if (getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED) && !cmdStartVolunteering.isEnabled()) {
-                                            runOnUiThread(() -> {
-                                                cmdStartVolunteering.setImageResource(R.drawable.ic_location_on);
-                                                cmdStartVolunteering.setEnabled(true);
-                                            });
-                                        }
-                                    }
-                                    startTime = System.currentTimeMillis();
-                                    updateTimeElapsedTextViews();
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError error) {
+                        }
+                    };
+                    sharerChangedListener = new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                            String sharerId = dataSnapshot.getValue(String.class);
+                            if (sharerId != null && !sharerId.equals("null")) {
+                                currentBusObject.setCurrentVolunteerId(sharerId);
+                                if (!cmdStartVolunteering.isEnabled() && sharerId.equals(SharedPref.getString(getApplicationContext(), "email"))) {
+                                    cmdStartVolunteering.setEnabled(true);
+                                    cmdStartVolunteering.setImageResource(R.drawable.ic_location_on);
                                 }
+                                startTime = System.currentTimeMillis();
+                                updateTimeElapsedTextViews();
                             }
+                        }
 
-                            @Override
-                            public void onCancelled(@NonNull DatabaseError error) {
-                            }
-                        };
-                    if (speedChangedListener == null)
-                        speedChangedListener = new ValueEventListener() {
-                            @Override
-                            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                                Integer speed = dataSnapshot.getValue(Integer.class);
-                                if (speed != null) {
-                                    currentBusObject.setSpeed((int) (speed * 3.6));
-                                    startTime = System.currentTimeMillis();
-                                    updateTimeElapsedTextViews();
-                                }
-                            }
-
-                            @Override
-                            public void onCancelled(@NonNull DatabaseError error) {
-                            }
-                        };
-                    if (sharerChangedListener == null)
-                        sharerChangedListener = new ValueEventListener() {
-                            @Override
-                            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                                String sharerId = dataSnapshot.getValue(String.class);
-                                if (sharerId != null && !sharerId.equals("null")) {
-                                    currentBusObject.setCurrentVolunteerId(sharerId);
-                                    if (!cmdStartVolunteering.isEnabled() && sharerId.equals(SharedPref.getString(getApplicationContext(), "email"))) {
-                                        cmdStartVolunteering.setEnabled(true);
-                                        cmdStartVolunteering.setImageResource(R.drawable.ic_location_on);
-                                    }
-                                    startTime = System.currentTimeMillis();
-                                    updateTimeElapsedTextViews();
-                                }
-                            }
-
-                            @Override
-                            public void onCancelled(@NonNull DatabaseError error) {
-                            }
-                        };
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError error) {
+                        }
+                    };
                     busLocRef.child("currentSharerID").addValueEventListener(sharerChangedListener);
                     busLocRef.child("sharingLoc").addValueEventListener(onlineStatusChangedListener);
                     busLocRef.child("speed").addValueEventListener(speedChangedListener);
@@ -1437,15 +1350,17 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
             busLocRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo == null ? SharedPref.getString(getApplicationContext(), "routeNo") : routeNo);
         if (sharerChangedListener != null)
             busLocRef.child("currentSharerID").removeEventListener(sharerChangedListener);
-        if (onlineStatusChangedListener != null)
-            busLocRef.child("sharingLoc").removeEventListener(onlineStatusChangedListener);
+        /*if (onlineStatusChangedListener != null)
+            busLocRef.child("sharingLoc").removeEventListener(onlineStatusChangedListener);*/
         if (speedChangedListener != null)
             busLocRef.child("speed").removeEventListener(speedChangedListener);
         if (locationChangedListener != null)
             busLocRef.child("latLong").removeEventListener(locationChangedListener);
 
+        locationChangedListener = speedChangedListener = onlineStatusChangedListener = sharerChangedListener = null;
         if (routeExistslistener != null)
             busLocRef.addValueEventListener(routeExistslistener);
+        else initUI();
         //runOnUiThread(() -> tvVolunteerDetails.setVisibility(View.GONE));
     }
 
@@ -1464,33 +1379,39 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         busObject.setInfoUpdatedListener(new BusObject.OnInfoUpdatedListener() {
             @Override
             public void onSharerIdChanged(String r, String newSharerId) {
-                AlphaAnimation fadeOut = new AlphaAnimation(1, 0), fadeIn = new AlphaAnimation(0, 1);
-                fadeOut.setDuration(500);
-                fadeOut.setAnimationListener(new Animation.AnimationListener() {
-                    @Override
-                    public void onAnimationStart(Animation animation) {
-                    }
+                if (!getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED) && getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED))
+                    return;
+                runOnUiThread(() -> {
+                    AlphaAnimation fadeOut = new AlphaAnimation(1, 0), fadeIn = new AlphaAnimation(0, 1);
+                    fadeOut.setDuration(500);
+                    fadeOut.setAnimationListener(new Animation.AnimationListener() {
+                        @Override
+                        public void onAnimationStart(Animation animation) {
+                        }
 
-                    @Override
-                    public void onAnimationEnd(Animation animation) {
-                        if (busObject.isSharerOnline())
-                            tvVolunteerDetails.setText(String.format("Current Volunteer%s", busObject.getCurrentVolunteerId().equals(SharedPref.getString(getApplicationContext(), "email")) ? ": You" : " ID:\n" + busObject.getCurrentVolunteerId()));
-                        else
-                            tvVolunteerDetails.setText(String.format("Location last volunteered by%s", busObject.getCurrentVolunteerId().equals(SharedPref.getString(getApplicationContext(), "email")) ? ": You" : " ID:\n" + busObject.getCurrentVolunteerId()));
-                        tvVolunteerDetails.startAnimation(fadeIn);
-                    }
+                        @Override
+                        public void onAnimationEnd(Animation animation) {
+                            if (busObject.isSharerOnline())
+                                tvVolunteerDetails.setText(String.format("Current Volunteer%s", busObject.getCurrentVolunteerId().equals(SharedPref.getString(getApplicationContext(), "email")) ? ": You" : " ID:\n" + busObject.getCurrentVolunteerId()));
+                            else
+                                tvVolunteerDetails.setText(String.format("Location last volunteered by%s", busObject.getCurrentVolunteerId().equals(SharedPref.getString(getApplicationContext(), "email")) ? ": You" : " ID:\n" + busObject.getCurrentVolunteerId()));
+                            tvVolunteerDetails.startAnimation(fadeIn);
+                        }
 
-                    @Override
-                    public void onAnimationRepeat(Animation animation) {
-                    }
+                        @Override
+                        public void onAnimationRepeat(Animation animation) {
+                        }
+                    });
+                    fadeIn.setDuration(500);
+                    fadeIn.setStartOffset(500);
+                    tvVolunteerDetails.startAnimation(fadeOut);
                 });
-                fadeIn.setDuration(500);
-                fadeIn.setStartOffset(500);
-                tvVolunteerDetails.startAnimation(fadeOut);
             }
 
             @Override
             public void onLocationChanged(String r, LatLng location) {
+                if (!getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED) && getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED))
+                    return;
                 if (Looper.getMainLooper() == Looper.myLooper()) {
                     //googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location, googleMap.getCameraPosition().zoom));
                     busObject.moveMarker(googleMap, location);
@@ -1502,42 +1423,45 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
 
             @Override
             public void onOnlineStatusChanged(String r, boolean isOnline) {
-                //if (isOnline == busObject.isSharerOnline()) return;
-                if ((isOnline && isBusOnlineIV.getDrawable() == getResources().getDrawable(R.drawable.circle_busvolunteer_online))
-                        || (!isOnline && isBusOnlineIV.getDrawable() == getResources().getDrawable(R.drawable.circle_busvolunteer_offline)))
-                    return;
-                AlphaAnimation fadeOut = new AlphaAnimation(1, 0), fadeIn = new AlphaAnimation(0, 1);
-                fadeOut.setDuration(500);
-                fadeOut.setAnimationListener(new Animation.AnimationListener() {
-                    @Override
-                    public void onAnimationStart(Animation animation) {
-                    }
-
-                    @Override
-                    public void onAnimationEnd(Animation animation) {
-                        if (isOnline) {
-                            if (!currentBusObject.getCurrentVolunteerId().equals(SharedPref.getString(getApplicationContext(), "email")))
-                                if (cmdStopVolunteering.getVisibility() == View.VISIBLE)
-                                    enableControls();
-                            tvVolunteerDetails.setText(String.format("Current Volunteer%s", currentBusObject.getCurrentVolunteerId().equals(SharedPref.getString(getApplicationContext(), "email")) ? ": You" : " ID:\n" + currentBusObject.getCurrentVolunteerId()));
-                            isBusOnlineIV.setImageResource(R.drawable.circle_busvolunteer_online);
-
-                        } else {
-                            isBusOnlineIV.setImageResource(R.drawable.circle_busvolunteer_offline);
-                            tvVolunteerDetails.setText(String.format("Location last shared by%s", currentBusObject.getCurrentVolunteerId().equals(SharedPref.getString(getApplicationContext(), "email")) ? ": You" : " ID:\n" + currentBusObject.getCurrentVolunteerId() + "     "));
+                if (!getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED)) return;
+                runOnUiThread(() -> {
+                    if ((isOnline && isBusOnlineIV.getTag().toString().equals("online"))
+                            || (!isOnline && isBusOnlineIV.getTag().toString().equals("offline")))
+                        return;
+                    AlphaAnimation fadeOut = new AlphaAnimation(1, 0), fadeIn = new AlphaAnimation(0, 1);
+                    fadeOut.setDuration(500);
+                    fadeOut.setAnimationListener(new Animation.AnimationListener() {
+                        @Override
+                        public void onAnimationStart(Animation animation) {
                         }
-                        isBusOnlineIV.startAnimation(fadeIn);
-                        tvVolunteerDetails.startAnimation(fadeIn);
-                    }
 
-                    @Override
-                    public void onAnimationRepeat(Animation animation) {
-                    }
+                        @Override
+                        public void onAnimationEnd(Animation animation) {
+                            if (isOnline) {
+                                if (!currentBusObject.getCurrentVolunteerId().equals(SharedPref.getString(getApplicationContext(), "email")))
+                                    if (cmdStopVolunteering.getVisibility() == View.VISIBLE)
+                                        enableControls();
+                                tvVolunteerDetails.setText(String.format("Current Volunteer%s", currentBusObject.getCurrentVolunteerId().equals(SharedPref.getString(getApplicationContext(), "email")) ? ": You" : " ID:\n" + currentBusObject.getCurrentVolunteerId()));
+                                isBusOnlineIV.setImageResource(R.drawable.circle_busvolunteer_online);
+                                isBusOnlineIV.setTag("online");
+                            } else {
+                                isBusOnlineIV.setImageResource(R.drawable.circle_busvolunteer_offline);
+                                tvVolunteerDetails.setText(String.format("Location last shared by%s", currentBusObject.getCurrentVolunteerId().equals(SharedPref.getString(getApplicationContext(), "email")) ? ": You" : " ID:\n" + currentBusObject.getCurrentVolunteerId() + "     "));
+                                isBusOnlineIV.setTag("offline");
+                            }
+                            isBusOnlineIV.startAnimation(fadeIn);
+                            tvVolunteerDetails.startAnimation(fadeIn);
+                        }
+
+                        @Override
+                        public void onAnimationRepeat(Animation animation) {
+                        }
+                    });
+                    fadeIn.setDuration(500);
+                    fadeIn.setStartOffset(500);
+                    isBusOnlineIV.startAnimation(fadeOut);
+                    tvVolunteerDetails.startAnimation(fadeOut);
                 });
-                fadeIn.setDuration(500);
-                fadeIn.setStartOffset(500);
-                isBusOnlineIV.startAnimation(fadeOut);
-                tvVolunteerDetails.startAnimation(fadeOut);
             }
 
             @Override
@@ -1563,34 +1487,38 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
     }
 
     private void showMapView() {
-        if (Looper.getMainLooper() == Looper.myLooper()) {
-            if (busTrackingMap.getVisibility() == View.VISIBLE) return;
-            novolunteerLL.setVisibility(View.GONE);
-            busTrackingMap.setVisibility(View.VISIBLE);
-            AlphaAnimation fadeIn = new AlphaAnimation(0, 1);
-            fadeIn.setDuration(1000);
-            fabRecentre.setVisibility(View.VISIBLE);
-            fabRecentre.startAnimation(fadeIn);
-        } else runOnUiThread(() -> {
+        runOnUiThread(() -> {
             if (novolunteerLL == null || busTrackingMap == null) return;
             else if (busTrackingMap.getVisibility() == View.VISIBLE) return;
-            novolunteerLL.setVisibility(View.GONE);
-            busTrackingMap.setVisibility(View.VISIBLE);
-            AlphaAnimation fadeIn = new AlphaAnimation(0, 1);
-            fadeIn.setDuration(1000);
-            fabRecentre.setVisibility(View.VISIBLE);
-            fabRecentre.startAnimation(fadeIn);
+            //novolunteerLL.setVisibility(View.GONE);
+            AlphaAnimation fadeIn = new AlphaAnimation(0, 1), fadeOut = new AlphaAnimation(1, 0);
+            fadeIn.setDuration(500);
+            fadeOut.setDuration(500);
+            fadeOut.setAnimationListener(new Animation.AnimationListener() {
+                @Override
+                public void onAnimationStart(Animation animation) {
+                }
+
+                @Override
+                public void onAnimationEnd(Animation animation) {
+                    novolunteerLL.setVisibility(View.GONE);
+                    busTrackingMap.setVisibility(View.VISIBLE);
+                    fabRecentre.startAnimation(fadeIn);
+                    busTrackingMap.startAnimation(fadeIn);
+                    fabRecentre.setVisibility(View.VISIBLE);
+                }
+
+                @Override
+                public void onAnimationRepeat(Animation animation) {
+                }
+            });
+            novolunteerLL.startAnimation(fadeOut);
         });
     }
 
     private void hideMapView() {
         if (busTrackingMap == null || tvNoVolunteer == null) return;
-        if (Looper.getMainLooper() == Looper.myLooper()) {
-            if (busTrackingMap.getVisibility() == View.GONE) return;
-            busTrackingMap.setVisibility(View.GONE);
-            novolunteerLL.setVisibility(View.VISIBLE);
-            fabRecentre.setVisibility(View.GONE);
-        } else runOnUiThread(() -> {
+        runOnUiThread(() -> {
             if (busTrackingMap.getVisibility() == View.GONE) return;
             busTrackingMap.setVisibility(View.GONE);
             novolunteerLL.setVisibility(View.VISIBLE);
@@ -1617,9 +1545,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
 
         }
         if (googleMap != null && busTrackingMap != null) busTrackingMap.onDestroy();
-        deactivateInfoChangedListeners();
-        if (routeExistslistener != null)
-            busLocRef.removeEventListener(routeExistslistener);
     }
 
     @Override
@@ -1631,8 +1556,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
 
         }
         if (googleMap != null && busTrackingMap != null) busTrackingMap.onStop();
-        if (routeExistslistener != null)
-            busLocRef.removeEventListener(routeExistslistener);
     }
 
     @Override
@@ -1642,12 +1565,11 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
             super.onResume();
             if (busTrackingMap != null && googleMap != null) {
                 busTrackingMap.onResume();
-                if (googleMap != null)
-                    if (currentBusObject != null && currentBusObject.getLocation() != null) {
-                        googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentBusObject.getLocation(), 18f));
-                    } else if (SSNCEPoint != null) {
-                        googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(SSNCEPoint, 18f));
-                    }
+                if (currentBusObject != null && currentBusObject.getLocation() != null) {
+                    googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentBusObject.getLocation(), 18f));
+                } else if (SSNCEPoint != null) {
+                    googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(SSNCEPoint, 18f));
+                }
             }
         } catch (Exception e) {
             Toast.makeText(getApplicationContext(), "ERROR: " + e.getMessage() + "\nCAUSE: " + e.getCause(), Toast.LENGTH_LONG).show();
@@ -1660,7 +1582,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
     public void onPause() {
         super.onPause();
         if (googleMap != null && busTrackingMap != null) busTrackingMap.onPause();
-        deactivateInfoChangedListeners();
     }
 
     @Override

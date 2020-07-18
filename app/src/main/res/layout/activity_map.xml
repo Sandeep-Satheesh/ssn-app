@@ -212,6 +212,7 @@
             android:id="@+id/mapView_bus"
             android:layout_width="match_parent"
             android:layout_height="0dp"
+            android:visibility="gone"
             android:layout_weight="1" />
 
         <LinearLayout
@@ -220,8 +221,7 @@
             android:layout_height="match_parent"
             android:layout_gravity="center"
             android:gravity="center"
-            android:orientation="vertical"
-            android:visibility="gone">
+            android:orientation="vertical">
 
             <ImageView
                 android:id="@+id/emptyIV"

@@ -47,5 +47,5 @@
     <string name="volunteer_offline">You are offline! Please come back online to resume volunteering!</string>
     <string name="start_volunteering_offlinemsg">You are offline! Connect back to the Internet to start volunteering!</string>
     <string name="user_offline">You are offline! Please come online to see your bus\' location!</string>
-    <string name="fetching_location">Fetching your location…\nThis can take a while if you are not on a moving bus.</string>
+    <string name="fetching_location">Attempting to fetch your location…</string>
 </resources>
