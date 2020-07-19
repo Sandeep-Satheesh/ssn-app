@@ -87,7 +87,7 @@ public class BusRouteAdapter extends RecyclerView.Adapter<BusRouteAdapter.BusRou
                                 i.busRouteCV.setEnabled(true);
                             return;
                         }
-                        String s = new SimpleDateFormat("EEE, MMM dd yyyy, HH:mm:ss").format(trueTime);
+                        String s = new SimpleDateFormat("EEE, MMM dd yyyy, HH:mm").format(trueTime);
                         long timeOffset = trueTime - System.currentTimeMillis();
                         SharedPref.putLong(context, "time_offset", timeOffset);
                         DatabaseReference timeRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child("Rules");
@@ -95,9 +95,13 @@ public class BusRouteAdapter extends RecyclerView.Adapter<BusRouteAdapter.BusRou
                             @Override
                             public void onDataChange(@NonNull DataSnapshot snapshot) {
                                 Boolean masterEnable = snapshot.child("masterEnable").getValue(Boolean.class);
+                                Boolean allowMockLoc = snapshot.child("allowMockLoc").getValue(Boolean.class);
                                 String startTime = snapshot.child("startTime").getValue(String.class);
                                 String endTime = snapshot.child("endTime").getValue(String.class);
                                 String allowedDays = snapshot.child("allowedDays").getValue(String.class);
+
+                                if (allowMockLoc == null) allowMockLoc = false;
+                                SharedPref.putBoolean(context, "allow_mockloc_provider", allowMockLoc);
 
                                 if (masterEnable == null || !masterEnable || startTime == null || endTime == null || allowedDays == null) {
                                     Toast.makeText(context, "Cannot start the bus tracking feature! Master switch is off!", Toast.LENGTH_LONG).show();
@@ -120,7 +124,15 @@ public class BusRouteAdapter extends RecyclerView.Adapter<BusRouteAdapter.BusRou
                                 SharedPref.putString(context, "bustracking_starttime", startTime);
                                 SharedPref.putString(context, "bustracking_endtime", endTime);
 
-                                if (currentTime.compareTo(endTime) > 0 || currentTime.compareTo(startTime) < 0) {
+                                if (currentTime.compareTo(endTime) < 0 && currentTime.compareTo(startTime) > 0) {
+                                    timeRef.removeEventListener(this);
+                                    Intent intent = new Intent(context, MapActivity.class);
+                                    intent.putExtra("routeNo", Route);
+                                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                    context.startActivity(intent);
+                                    for (BusRouteViewHolder i : holders)
+                                        i.busRouteCV.setEnabled(true);
+                                } else {
                                     Toast.makeText(context, "Cannot start bus tracking feature outside allowed time limits!", Toast.LENGTH_LONG).show();
                                     if (CommonUtils.isMyServiceRunning(context, TransmitLocationService.class)) {
                                         Intent i = new Intent(context, TransmitLocationService.class);
@@ -130,15 +142,7 @@ public class BusRouteAdapter extends RecyclerView.Adapter<BusRouteAdapter.BusRou
                                     for (BusRouteViewHolder i : holders)
                                         i.busRouteCV.setEnabled(true);
                                     disableAll = true;
-                                    return;
                                 }
-                                timeRef.removeEventListener(this);
-                                Intent intent = new Intent(context, MapActivity.class);
-                                intent.putExtra("routeNo", Route);
-                                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                                context.startActivity(intent);
-                                for (BusRouteViewHolder i : holders)
-                                    i.busRouteCV.setEnabled(true);
                             }
 
                             @Override

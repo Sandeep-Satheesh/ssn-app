@@ -33,13 +33,14 @@ import java.text.SimpleDateFormat;
 import in.edu.ssn.testssnapp.MapActivity;
 import in.edu.ssn.testssnapp.R;
 import in.edu.ssn.testssnapp.utils.CommonUtils;
+import in.edu.ssn.testssnapp.utils.Constants;
 import in.edu.ssn.testssnapp.utils.SharedPref;
 import in.edu.ssn.testssnapp.utils.SystemTimeChangedReceiver;
 
 public class TransmitLocationService extends Service implements LocationListener {
     DatabaseReference busLocDBRef;
     LocationManager locationManager;
-    volatile boolean suspendFlag = false;
+    volatile boolean suspendFlag = false, allowLocationFromMockProvider = false;
     //    double SSNCEPolygon[]; //TODO: The polygon within which we have to check to stop service automatically; check note at end.
     public static final String ACTION_START_FOREGROUND_SERVICE = "ACTION_START_FOREGROUND_SERVICE";
     public static final String ACTION_STOP_FOREGROUND_SERVICE = "ACTION_STOP_FOREGROUND_SERVICE";
@@ -49,11 +50,56 @@ public class TransmitLocationService extends Service implements LocationListener
     SystemTimeChangedReceiver systemTimeChangedReceiver;
     IntentFilter intentFilter;
 
+    public static Notification prepareForegroundServiceNotification(boolean goToActivity, String title, String message, Context context, Intent intent) {
+        PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, goToActivity ? intent : new Intent(), PendingIntent.FLAG_UPDATE_CURRENT);
+        NotificationCompat.Builder nbuilder;
+        NotificationManager notificationManager;
+        notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        Uri alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            notificationManager.createNotificationChannel(new NotificationChannel(Constants.BUS_TRACKING_SERVICENOTIFS_CHANNELID, "general", NotificationManager.IMPORTANCE_HIGH));
+            NotificationChannel channel = notificationManager.getNotificationChannel(Constants.BUS_TRACKING_SERVICENOTIFS_CHANNELID);
+            channel.enableLights(true);
+            channel.setLightColor(Color.BLUE);
+            channel.setDescription("Bus Tracking Volunteer Status");
+            channel.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE), new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).build());
+            nbuilder = new NotificationCompat.Builder(context, Constants.BUS_TRACKING_SERVICENOTIFS_CHANNELID)
+                    .setContentTitle(title)
+                    .setSmallIcon(R.drawable.ssn_logo)
+                    .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
+                    .setChannelId(Constants.BUS_TRACKING_SERVICENOTIFS_CHANNELID)
+                    .setPriority(NotificationManager.IMPORTANCE_MAX)
+                    .setCategory(Notification.CATEGORY_SERVICE)
+                    .setColorized(false)
+                    .setAutoCancel(false)
+                    .setOngoing(true)
+                    .setContentIntent(pendingIntent);
+
+            return nbuilder.build();
+        } else {
+            nbuilder = new NotificationCompat.Builder(context, Constants.BUS_TRACKING_SERVICENOTIFS_CHANNELID)
+                    .setContentTitle(title)
+                    .setSmallIcon(R.drawable.ssn_logo)
+                    .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
+                    .setAutoCancel(false)
+                    .setPriority(NotificationManagerCompat.IMPORTANCE_MAX)
+                    .setCategory(NotificationCompat.CATEGORY_SERVICE)
+                    .setOngoing(true)
+                    .setColor(Color.LTGRAY)
+                    .setSound(alarmSound)
+                    .setContentIntent(pendingIntent);
+
+            return nbuilder.build();
+        }
+    }
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent == null || intent.getAction() == null) {
             return super.onStartCommand(intent, flags, startId);
         }
+        allowLocationFromMockProvider = SharedPref.getBoolean(getApplicationContext(), "allow_mockloc_provider");
         switch (intent.getAction()) {
             case ACTION_START_FOREGROUND_SERVICE:
                 locationManager = (LocationManager) this.getSystemService(LOCATION_SERVICE);
@@ -61,8 +107,10 @@ public class TransmitLocationService extends Service implements LocationListener
                 suspendFlag = intent.getBooleanExtra("suspendFlag", true);
                 SharedPref.putBoolean(getApplicationContext(), "service_suspended", suspendFlag);
                 userID = SharedPref.getString(getApplicationContext(), "email");
-                busLocDBRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo);
+
                 validateCurrentTime();
+
+                busLocDBRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo);
                 try {
                     unregisterReceiver(systemTimeChangedReceiver);
                 } catch (Exception e) {
@@ -77,17 +125,18 @@ public class TransmitLocationService extends Service implements LocationListener
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-                busLocDBRef.child("currentSharerID").setValue(userID);
-                busLocDBRef.child("sharingLoc").setValue(true);
                 try {
                     if (locationManager != null) {
                         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 10, this);
                         Location l = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
                         if (l != null) {
+                            checkLocationValidity(l);
                             latLongString = l.getLatitude() + "," + l.getLongitude();
                             busLocDBRef.child("latLong").setValue(latLongString);
                             speed = (int) l.getSpeed();
                             busLocDBRef.child("speed").setValue(speed);
+                            busLocDBRef.child("currentSharerID").setValue(userID);
+                            busLocDBRef.child("sharingLoc").setValue(true);
                         }
                     }
                 } catch (SecurityException e) {
@@ -148,50 +197,6 @@ public class TransmitLocationService extends Service implements LocationListener
         return START_STICKY;
     }
 
-    public static Notification prepareForegroundServiceNotification(boolean goToActivity, String title, String message, Context context, Intent intent) {
-        PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, goToActivity ? intent : new Intent(), PendingIntent.FLAG_UPDATE_CURRENT);
-        NotificationCompat.Builder nbuilder;
-        NotificationManager notificationManager;
-        notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        Uri alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            notificationManager.createNotificationChannel(new NotificationChannel("1", "general", NotificationManager.IMPORTANCE_HIGH));
-            NotificationChannel channel = notificationManager.getNotificationChannel("1");
-            channel.enableLights(true);
-            channel.setLightColor(Color.BLUE);
-            channel.setDescription("Bus Tracking Volunteer Status");
-            channel.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE), new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).build());
-            nbuilder = new NotificationCompat.Builder(context, "1")
-                    .setContentTitle(title)
-                    .setSmallIcon(R.drawable.ssn_logo)
-                    .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
-                    .setChannelId("1")
-                    .setPriority(NotificationManager.IMPORTANCE_MAX)
-                    .setCategory(Notification.CATEGORY_SERVICE)
-                    .setColorized(false)
-                    .setAutoCancel(false)
-                    .setOngoing(true)
-                    .setContentIntent(pendingIntent);
-
-            return nbuilder.build();
-        } else {
-            nbuilder = new NotificationCompat.Builder(context, "1")
-                    .setContentTitle(title)
-                    .setSmallIcon(R.drawable.ssn_logo)
-                    .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
-                    .setAutoCancel(false)
-                    .setPriority(NotificationManagerCompat.IMPORTANCE_MAX)
-                    .setCategory(NotificationCompat.CATEGORY_SERVICE)
-                    .setOngoing(true)
-                    .setColor(Color.LTGRAY)
-                    .setSound(alarmSound)
-                    .setContentIntent(pendingIntent);
-
-            return nbuilder.build();
-        }
-    }
-
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
@@ -200,9 +205,10 @@ public class TransmitLocationService extends Service implements LocationListener
 
     @Override
     public void onLocationChanged(Location location) {
-        validateCurrentTime();
         //changeProviderIfRequired(locationManager.getBestProvider(criteria, true));
         if (CommonUtils.alerter(this) || suspendFlag) return;
+        validateCurrentTime();
+        checkLocationValidity(location);
         busLocDBRef.child("currentSharerID").setValue(userID);
         busLocDBRef.child("sharingLoc").setValue(true);
         latLongString = location.getLatitude() + "," + location.getLongitude();
@@ -210,6 +216,25 @@ public class TransmitLocationService extends Service implements LocationListener
         speed = (int) location.getSpeed();
         busLocDBRef.child("speed").setValue(speed);
         busLocDBRef.child("sharingLoc").setValue(true);
+    }
+
+    private void checkLocationValidity(Location location) {
+        if (location.isFromMockProvider() && !allowLocationFromMockProvider) {
+            MapActivity.showNotification(4, Constants.BUS_TRACKING_SERVICENOTIFS_CHANNELID, "Location sharing force-stopped.", "You are not allowed to emulate your GPS location!", getApplicationContext(), new Intent());
+            Toast.makeText(getApplicationContext(), "You are trying to emulate your GPS location! The service has been stopped.", Toast.LENGTH_LONG).show();
+            try {
+                locationManager.removeUpdates(this);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            try {
+                unregisterReceiver(systemTimeChangedReceiver);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            stopForeground(true);
+            stopSelf();
+        }
     }
 
     @Override
@@ -222,6 +247,7 @@ public class TransmitLocationService extends Service implements LocationListener
                 busLocDBRef.child("sharingLoc").setValue(true);
                 Location location = locationManager.getLastKnownLocation(provider);
                 if (location != null) {
+                    checkLocationValidity(location);
                     latLongString = location.getLatitude() + "," + location.getLongitude();
                     busLocDBRef.child("latLong").setValue(latLongString);
                     speed = (int) location.getSpeed();
@@ -239,14 +265,6 @@ public class TransmitLocationService extends Service implements LocationListener
 
     @Override
     public void onProviderEnabled(String provider) {
-        try {
-            Location location = locationManager.getLastKnownLocation(provider);
-            if (location != null && location.isFromMockProvider())
-                Toast.makeText(getApplicationContext(), "Alert: Location is from mock location provider!", Toast.LENGTH_SHORT).show();
-
-        } catch (SecurityException e) {
-            e.printStackTrace();
-        }
         validateCurrentTime();
         if (!suspendFlag && !provider.equals(LocationManager.GPS_PROVIDER)) {
             suspendFlag = true;
@@ -261,6 +279,7 @@ public class TransmitLocationService extends Service implements LocationListener
         try {
             Location location = locationManager.getLastKnownLocation(provider);
             if (location != null) {
+                checkLocationValidity(location);
                 latLongString = location.getLatitude() + "," + location.getLongitude();
                 busLocDBRef.child("latLong").setValue(latLongString);
                 speed = (int) location.getSpeed();
@@ -304,12 +323,12 @@ public class TransmitLocationService extends Service implements LocationListener
     }
 
     private void validateCurrentTime() {
-        String currentTime = new SimpleDateFormat("EEE, MMM dd yyyy, HH:mm:ss").format(System.currentTimeMillis() + SharedPref.getLong(getApplicationContext(), "time_offset")).substring(18),
+        String currentTime = new SimpleDateFormat("EEE, MMM dd yyyy, HH:mm").format(System.currentTimeMillis() + SharedPref.getLong(getApplicationContext(), "time_offset")).substring(18),
                 startTime = SharedPref.getString(getApplicationContext(), "bustracking_starttime"),
                 endTime = SharedPref.getString(getApplicationContext(), "bustracking_endtime");
 
-        if (currentTime.compareTo(endTime) > 0 || currentTime.compareTo(startTime) < 0) {
-            MapActivity.showNotification(4, "1", "Location sharing force-stopped.", "You have exceeded the time limit allowed to use this feature! Thank you for your services.", getApplicationContext(), new Intent());
+        if (!(currentTime.compareTo(endTime) < 0 && currentTime.compareTo(startTime) > 0)) {
+            MapActivity.showNotification(4, Constants.BUS_TRACKING_SERVICENOTIFS_CHANNELID, "Location sharing force-stopped.", "You have exceeded the time limit allowed to use this feature! Thank you for your services.", getApplicationContext(), new Intent());
             Toast.makeText(getApplicationContext(), "The current time is: " + currentTime + ". You have exceeded the allowed time limits to use this feature!", Toast.LENGTH_LONG).show();
             busLocDBRef.child("timeLimitViolation").setValue(true);
 
