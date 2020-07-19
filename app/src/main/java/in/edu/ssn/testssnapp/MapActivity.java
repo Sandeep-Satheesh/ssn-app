@@ -323,6 +323,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                                     "Your network connection seems to be unstable, or you are restarting sharing too frequently. The service has been stopped. Please check your connection for stability, and then go back into the app to start volunteering!", Toast.LENGTH_LONG).show();
                             showNotification(3, Constants.BUS_TRACKING_GENERALNOTIFS_CHANNELID, "Auto-stopped volunteering",
                                     "Your network connection seems to be unstable, or you are restarting sharing too frequently. The service has been stopped. Please check your connection for stability, and then go back into the app to start volunteering!", MapActivity.this, new Intent());
+                            if (busLocRef != null) busLocRef.removeValue();
                             finish();
                             return;
                         }
@@ -1184,7 +1185,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                                         Toast.makeText(getApplicationContext(), "Concurrency detected! One of you has been rejected by the system. Please check if your bus has a volunteer currently!", Toast.LENGTH_LONG).show();
                                         stopLocationTransmission(false);
                                         sharerChangeCount = 0;
-                                    } else if (!SharedPref.getString(getApplicationContext(), "email").equals(currentBusObject.getCurrentVolunteerId()) && System.currentTimeMillis() - lastSharerChangeTime < 1000) {
+                                    } else if (!SharedPref.getString(getApplicationContext(), "email").equals(currentBusObject.getCurrentVolunteerId()) && CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class) && System.currentTimeMillis() - lastSharerChangeTime < 1000) {
                                         sharerChangeCount++;
                                     }
                                 lastSharerChangeTime = System.currentTimeMillis();
