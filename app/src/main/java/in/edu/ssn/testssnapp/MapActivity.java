@@ -282,6 +282,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         if (volunteerNetworkCallback == null)
             volunteerNetworkCallback = new ConnectivityManager.NetworkCallback() {
                 volatile boolean flg = false;
+
                 void attemptToReconnect() {
                     clearOldNotifications();
                     if (busLocRef == null) {
@@ -1169,12 +1170,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                                 startTime = System.currentTimeMillis();
                                 updateTimeElapsedTextViews();
                             }
-                            String s = (String) isBusOnlineIV.getTag();
-                            if ((s.equals("offline") && currentBusObject.isSharerOnline()) || (s.equals("online") && !currentBusObject.isSharerOnline())) {
-                                currentBusObject.setUserOnline(false);
-                                if (isSharingLoc != null)
-                                    currentBusObject.setUserOnline(isSharingLoc);
-                            }
                         }
 
                         @Override
@@ -1593,8 +1588,21 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
             super.onResume();
             if (busTrackingMap != null && googleMap != null) {
                 busTrackingMap.onResume();
-                if (currentBusObject != null && currentBusObject.getLocation() != null) {
-                    googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentBusObject.getLocation(), 18f));
+                if (currentBusObject != null) {
+                    if (currentBusObject.getLocation() != null) {
+                        googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentBusObject.getLocation(), 18f));
+                    } else if (SSNCEPoint != null) {
+                        googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(SSNCEPoint, 18f));
+                    }
+                    //sync problem with busObject (onResume)
+                    if ((currentBusObject.isSharerOnline() && isBusOnlineIV.getTag().toString().equals("offline"))
+                            || (!currentBusObject.isSharerOnline() && isBusOnlineIV.getTag().toString().equals("online"))) {
+                        String s = currentBusObject.getCurrentVolunteerId();
+                        if (s != null) currentBusObject.setCurrentVolunteerId(s);
+
+                        currentBusObject.setUserOnline(currentBusObject.isSharerOnline());
+                    }
+
                 } else if (SSNCEPoint != null) {
                     googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(SSNCEPoint, 18f));
                 }
