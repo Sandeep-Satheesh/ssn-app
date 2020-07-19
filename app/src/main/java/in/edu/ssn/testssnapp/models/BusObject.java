@@ -39,7 +39,7 @@ public class BusObject {
             busMarker.setTitle("Est. Speed: " + speed + " km/h");
             busMarker.showInfoWindow();
         }
-        if (isSharerOnline) locationUpdatedListener.onSpeedChanged(routeNo, speed);
+        locationUpdatedListener.onSpeedChanged(routeNo, speed);
     }
 
     public String getRouteNo() {

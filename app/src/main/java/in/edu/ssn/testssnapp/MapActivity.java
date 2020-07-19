@@ -1185,7 +1185,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                                         Toast.makeText(getApplicationContext(), "Concurrency detected! One of you has been rejected by the system. Please check if your bus has a volunteer currently!", Toast.LENGTH_LONG).show();
                                         stopLocationTransmission(false);
                                         sharerChangeCount = 0;
-                                    } else if (!SharedPref.getString(getApplicationContext(), "email").equals(currentBusObject.getCurrentVolunteerId()) && CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class) && System.currentTimeMillis() - lastSharerChangeTime < 1000) {
+                                    } else if (CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class) && !SharedPref.getBoolean(getApplicationContext(), "service_suspended") && System.currentTimeMillis() - lastSharerChangeTime < 1000) {
                                         sharerChangeCount++;
                                     }
                                 lastSharerChangeTime = System.currentTimeMillis();
