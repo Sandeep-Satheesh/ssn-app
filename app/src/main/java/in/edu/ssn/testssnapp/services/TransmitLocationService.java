@@ -337,13 +337,10 @@ public class TransmitLocationService extends Service implements LocationListener
                 endTime = SharedPref.getString(getApplicationContext(), "bustracking_endtime");
 
         if (!(currentTime.compareTo(endTime) < 0 && currentTime.compareTo(startTime) > 0)) {
-            MapActivity.showNotification(4, Constants.BUS_TRACKING_SERVICENOTIFS_CHANNELID, "Location sharing force-stopped.", "You have exceeded the time limit allowed to use this feature! Thank you for your services.", getApplicationContext(), new Intent());
+            MapActivity.showNotification(4, Constants.BUS_TRACKING_GENERALNOTIFS_CHANNELID, "Location sharing force-stopped.", "You have exceeded the time limit allowed to use this feature! Thank you for your services.", getApplicationContext(), new Intent());
             try {
-                busLocDBRef.child("timeLimitViolation").setValue(true);
-            } catch (Exception e) {
-            }
-            try {
-                Toast.makeText(getApplicationContext(), "The current time is: " + currentTime + ". You have exceeded the allowed time limits to use this feature!", Toast.LENGTH_LONG).show();
+                Toast.makeText(getApplicationContext(), "The current time is: " + currentTime + " hrs. You have exceeded the allowed time limits to use this feature!", Toast.LENGTH_LONG).show();
+                startActivity(new Intent(getApplicationContext(), BusRoutesActivity.class).setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK));
             } catch (Exception e) {
             }
 

@@ -105,7 +105,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
     MapView busTrackingMap;
     ConnectivityManager.NetworkCallback userNetworkCallback, volunteerNetworkCallback;
     NetworkRequest networkRequest;
-    ValueEventListener concurrentVolunteerListener, routeExistslistener, locationChangedListener, sharerChangedListener, onlineStatusChangedListener, speedChangedListener;
+    ValueEventListener routeExistslistener, locationChangedListener, sharerChangedListener, onlineStatusChangedListener, speedChangedListener;
     ProgressDialog pd;
     boolean isMapLoaded = false;
     volatile BusObject currentBusObject;
@@ -370,9 +370,9 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                         i.setAction(TransmitLocationService.ACTION_STOP_FOREGROUND_SERVICE);
                         startService(i);
                     }
-                    Bungee.slideRight(MapActivity.this);
+                    if (busLocRef != null) busLocRef.removeValue();
+                    startActivity(new Intent(getApplicationContext(), BusRoutesActivity.class).setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK));
                     finish();
-                    startActivity(new Intent(MapActivity.this, BusRoutesActivity.class));
                     return;
                 }
                 ref.removeEventListener(this);
@@ -506,25 +506,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         routeExistslistener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                //if (getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED))
-                if (dataSnapshot.child("timeLimitViolation").getValue(Boolean.class) != null) {
-                    Boolean timeLimitViolation = dataSnapshot.child("timeLimitViolation").getValue(Boolean.class);
-                    if (timeLimitViolation) {
-                        if (isBusVolunteer)
-                            tvNoVolunteer.setText(R.string.would_you_like_to_volunteer);
-                        else tvNoVolunteer.setText(R.string.no_volunteer_available);
-                        stopLocationTransmission();
-                        Toast.makeText(getApplicationContext(), "You have exceeded the daily time limit allowed to use this feature!", Toast.LENGTH_LONG).show();
-                        if (CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class))
-                            stopLocationTransmission();
-
-                        unregisterNetworkCallbacks();
-                        deactivateInfoChangedListeners();
-                        busLocRef.removeEventListener(this);
-                        finish();
-                    }
-                } else if (dataSnapshot.getChildrenCount() < 4) {
-
+                if (dataSnapshot.getChildrenCount() < 4) {
                     if (isVolunteerOfThisBus()) {
                         if (getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED) && !cmdStartVolunteering.isEnabled()) {
                             if (CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class)) {
@@ -550,6 +532,9 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                     } else if (!sharerId.equals(userId) && sharingLoc) {
                         cmdStartVolunteering.setEnabled(false);
                         cmdStartVolunteering.setImageResource(R.drawable.ic_location_on_disabled);
+                    } else {
+                        cmdStartVolunteering.setEnabled(true);
+                        cmdStartVolunteering.setImageResource(R.drawable.ic_location_on);
                     }
 
                     int sep = latLongString.indexOf(',');
@@ -726,14 +711,20 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                 String start = snapshot.child("startTime").getValue(String.class),
                         end = snapshot.child("endTime").getValue(String.class);
                 Boolean masterEnable = snapshot.child("masterEnable").getValue(Boolean.class);
+                Boolean mockLocAllowed = snapshot.child("allowMockLoc").getValue(Boolean.class);
+
+                if (mockLocAllowed == null) mockLocAllowed = false;
+                SharedPref.putBoolean(getApplicationContext(), "allow_mockloc_provider", mockLocAllowed);
+
                 if (masterEnable == null || !masterEnable) {
                     if (CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class))
                         stopLocationTransmission();
-
                     unregisterNetworkCallbacks();
                     deactivateInfoChangedListeners();
                     if (routeExistslistener != null && busLocRef != null)
                         busLocRef.removeEventListener(routeExistslistener);
+                    Toast.makeText(getApplicationContext(), "The master switch was disabled by the admin! The feature will not function until the master switch is reset!", Toast.LENGTH_LONG).show();
+                    showNotification(1, Constants.BUS_TRACKING_GENERALNOTIFS_CHANNELID, "Force-stopped bus tracking", "The master switch was disabled by the admin! The feature will not function until the master switch is reset!", MapActivity.this, new Intent());
                     finish();
                     return;
                 }
@@ -770,28 +761,45 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
     private void startLocationTransmission() {
         checkRequirementsAndPermissions();
         clearOldNotifications();
-        if (concurrentVolunteerListener == null)
-            concurrentVolunteerListener = new ValueEventListener() {
-                @Override
-                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                    String s = dataSnapshot.child("currentSharerID").getValue(String.class);
-                    Boolean b = dataSnapshot.child("sharingLoc").getValue(Boolean.class);
-                    if (CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class) && s != null && !s.equals("null") && !s.equals(SharedPref.getString(getApplicationContext(), "email")) && b != null && b) {
-                        stopLocationTransmission(false);
-                        unregisterNetworkCallbacks();
-                        switchToUserNetworkCallback();
-                        enableControls();
-                        cmdStartVolunteering.setImageResource(R.drawable.ic_location_on);
-                        cmdStartVolunteering.setEnabled(true);
-                        showNotification(3, Constants.BUS_TRACKING_GENERALNOTIFS_CHANNELID, "Concurrency detected!", "Another volunteer started sharing their location at the same time as you! One of you has been rejected by the system. Please check if your bus has a volunteer currently!", MapActivity.this, new Intent(MapActivity.this, MapActivity.class).putExtra("routeNo", routeNo == null ? SharedPref.getString(getApplicationContext(), "routeNo") : routeNo));
-                        Toast.makeText(getApplicationContext(), "Concurrency detected! One of you has been rejected by the system. Please check if your bus has a volunteer currently!", Toast.LENGTH_LONG).show();
+        if (busLocRef == null)
+            busLocRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo == null ? SharedPref.getString(getApplicationContext(), "routeNo") : routeNo);
+        busLocRef.child("testdata").setValue(true, (error, ref) ->
+                busLocRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                        String s = dataSnapshot.child("currentSharerID").getValue(String.class);
+                        Boolean b = dataSnapshot.child("sharingLoc").getValue(Boolean.class);
+                        if (s != null && !"null".equals(s) && !SharedPref.getString(getApplicationContext(), "email").equals(s) && b != null && b) {
+                            stopLocationTransmission(false);
+                            unregisterNetworkCallbacks();
+                            switchToUserNetworkCallback();
+                            enableControls();
+                            cmdStartVolunteering.setImageResource(R.drawable.ic_location_on);
+                            cmdStartVolunteering.setEnabled(true);
+                            showNotification(3, Constants.BUS_TRACKING_GENERALNOTIFS_CHANNELID, "Concurrency detected!", "Another volunteer started sharing their location at the same time as you! One of you has been rejected by the system. Please check if your bus has a volunteer currently!", MapActivity.this, new Intent(MapActivity.this, MapActivity.class).putExtra("routeNo", routeNo == null ? SharedPref.getString(getApplicationContext(), "routeNo") : routeNo));
+                            Toast.makeText(getApplicationContext(), "Concurrency detected! One of you has been rejected by the system. Please check if your bus has a volunteer currently!", Toast.LENGTH_LONG).show();
+                            if (currentBusObject != null)
+                                currentBusObject.setCurrentVolunteerId(s);
+                        } else {
+                            busLocRef.removeValue();
+                            busLocRef.child("currentSharerID").setValue(SharedPref.getString(getApplicationContext(), "email"));
+                            busLocRef.child("sharingLoc").setValue(true);
+                            switchToVolunteerNetworkCallback();
+                            i = new Intent(getApplicationContext(), TransmitLocationService.class);
+                            i.setAction(TransmitLocationService.ACTION_START_FOREGROUND_SERVICE);
+                            i.putExtra("routeNo", routeNo);
+                            i.putExtra("suspendFlag", false);
+                            startService(i);
+                            isSharingLoc = true;
+                        }
+                        busLocRef.child("testdata").removeValue();
                     }
-                }
 
-                @Override
-                public void onCancelled(@NonNull DatabaseError databaseError) {
-                }
-            };
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError databaseError) {
+                    }
+                }));
+
         if (busTrackingMap != null) {
             runOnUiThread(() -> {
                 if (getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED)) {
@@ -806,40 +814,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                 }
             });
         }
-        if (busLocRef == null)
-            busLocRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo == null ? SharedPref.getString(getApplicationContext(), "routeNo") : routeNo);
-        busLocRef.addValueEventListener(concurrentVolunteerListener);
-        //remove old values, if any.
-        busLocRef.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                String s = snapshot.child("latLong").getValue(String.class);
-                if (s != null)
-                    busLocRef.removeValue((error, ref) -> {
-                        switchToVolunteerNetworkCallback();
-                        i = new Intent(getApplicationContext(), TransmitLocationService.class);
-                        i.setAction(TransmitLocationService.ACTION_START_FOREGROUND_SERVICE);
-                        i.putExtra("routeNo", routeNo);
-                        i.putExtra("suspendFlag", false);
-                        startService(i);
-                        isSharingLoc = true;
-                    });
-                else {
-                    switchToVolunteerNetworkCallback();
-                    i = new Intent(getApplicationContext(), TransmitLocationService.class);
-                    i.setAction(TransmitLocationService.ACTION_START_FOREGROUND_SERVICE);
-                    i.putExtra("routeNo", routeNo);
-                    i.putExtra("suspendFlag", false);
-                    startService(i);
-                    isSharingLoc = true;
-                }
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
-            }
-        });
     }
 
     private void suspendLocationTransmission() {
@@ -1122,7 +1096,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                         if (tvVolunteerDetails.getVisibility() == View.VISIBLE)
                             runOnUiThread(() -> tvVolunteerDetails.setText("No data available currently."));
                     } else runOnUiThread(() -> tvVolunteerDetails.setVisibility(View.VISIBLE));
-
                     locationChangedListener = new ValueEventListener() {
                         @Override
                         public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -1172,13 +1145,14 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                                             cmdStartVolunteering.setImageResource(R.drawable.ic_location_on);
                                             cmdStartVolunteering.setEnabled(true);
                                         });
-                                    else if (cmdStartVolunteering.isEnabled())
+                                    else if (cmdStartVolunteering.isEnabled() && !SharedPref.getString(getApplicationContext(), "email").equals(currentBusObject.getCurrentVolunteerId()))
                                         runOnUiThread(() -> {
                                             cmdStartVolunteering.setImageResource(R.drawable.ic_location_on_disabled);
                                             cmdStartVolunteering.setEnabled(false);
                                         });
                                 }
                         }
+
                         @Override
                         public void onCancelled(@NonNull DatabaseError error) {
                         }
@@ -1197,15 +1171,30 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                         }
                     };
                     sharerChangedListener = new ValueEventListener() {
+                        int sharerChangeCount = 0;
+                        long lastSharerChangeTime = 0;
+
                         @Override
                         public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                             String sharerId = dataSnapshot.getValue(String.class);
                             if (sharerId != null && !sharerId.equals("null")) {
-                                currentBusObject.setCurrentVolunteerId(sharerId);
-                            } else {
+                                if (isVolunteerOfThisBus())
+                                    if (sharerChangeCount >= 3) {
+                                        showNotification(3, Constants.BUS_TRACKING_GENERALNOTIFS_CHANNELID, "Concurrency detected!", "Another volunteer started sharing their location at the same time as you! One of you has been rejected by the system. Please check if your bus has a volunteer currently!", MapActivity.this, new Intent(MapActivity.this, MapActivity.class).putExtra("routeNo", routeNo == null ? SharedPref.getString(getApplicationContext(), "routeNo") : routeNo));
+                                        Toast.makeText(getApplicationContext(), "Concurrency detected! One of you has been rejected by the system. Please check if your bus has a volunteer currently!", Toast.LENGTH_LONG).show();
+                                        stopLocationTransmission(false);
+                                        sharerChangeCount = 0;
+                                    } else if (!SharedPref.getString(getApplicationContext(), "email").equals(currentBusObject.getCurrentVolunteerId()) && System.currentTimeMillis() - lastSharerChangeTime < 1000) {
+                                        sharerChangeCount++;
+                                    }
+                                lastSharerChangeTime = System.currentTimeMillis();
+                                runOnUiThread(() -> currentBusObject.setCurrentVolunteerId(sharerId));
+
+                            } else runOnUiThread(() -> {
                                 cmdStartVolunteering.setEnabled(true);
                                 cmdStartVolunteering.setImageResource(R.drawable.ic_location_on);
-                            }
+                            });
+                            startTime = System.currentTimeMillis();
                         }
 
                         @Override

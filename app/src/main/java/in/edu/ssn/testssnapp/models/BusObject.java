@@ -33,7 +33,6 @@ public class BusObject {
     }
 
     public void setSpeed(int speed) {
-        if (speed == this.speed) return;
         this.speed = speed;
         if (busMarker != null && busMarker.isInfoWindowShown()) {
             busMarker.hideInfoWindow();
