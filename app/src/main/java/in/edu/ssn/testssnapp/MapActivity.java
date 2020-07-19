@@ -769,7 +769,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                         String s = dataSnapshot.child("currentSharerID").getValue(String.class);
                         Boolean b = dataSnapshot.child("sharingLoc").getValue(Boolean.class);
-                        if (s != null && !"null".equals(s) && !SharedPref.getString(getApplicationContext(), "email").equals(s) && b != null && b) {
+                        if (s != null && !"null".equals(s) && CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class) && !SharedPref.getString(getApplicationContext(), "email").equals(s) && b != null && b) {
                             stopLocationTransmission(false);
                             unregisterNetworkCallbacks();
                             switchToUserNetworkCallback();
