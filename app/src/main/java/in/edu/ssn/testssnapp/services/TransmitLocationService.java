@@ -15,10 +15,10 @@ import android.location.LocationManager;
 import android.location.LocationProvider;
 import android.media.AudioAttributes;
 import android.media.RingtoneManager;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.provider.Settings;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -56,10 +56,10 @@ public class TransmitLocationService extends Service implements LocationListener
         NotificationCompat.Builder nbuilder;
         NotificationManager notificationManager;
         notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        Uri alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        //Uri alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            notificationManager.createNotificationChannel(new NotificationChannel(Constants.BUS_TRACKING_SERVICENOTIFS_CHANNELID, "general", NotificationManager.IMPORTANCE_HIGH));
+            notificationManager.createNotificationChannel(new NotificationChannel(Constants.BUS_TRACKING_SERVICENOTIFS_CHANNELID, "Bus-Tracking service status", NotificationManager.IMPORTANCE_HIGH));
             NotificationChannel channel = notificationManager.getNotificationChannel(Constants.BUS_TRACKING_SERVICENOTIFS_CHANNELID);
             channel.enableLights(true);
             channel.setLightColor(Color.BLUE);
@@ -88,7 +88,7 @@ public class TransmitLocationService extends Service implements LocationListener
                     .setCategory(NotificationCompat.CATEGORY_SERVICE)
                     .setOngoing(true)
                     .setColor(Color.LTGRAY)
-                    .setSound(alarmSound)
+                    .setSound(Settings.System.DEFAULT_NOTIFICATION_URI)
                     .setContentIntent(pendingIntent);
 
             return nbuilder.build();

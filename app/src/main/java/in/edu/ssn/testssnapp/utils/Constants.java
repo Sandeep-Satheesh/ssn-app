@@ -62,7 +62,7 @@ public class Constants {
     public static final String lakshya = "Lakshya";
     public static final int MAX_LOCSHARE_RETRIES_ALLOWED = 5;
     public static final String BUS_TRACKING_GENERALNOTIFS_CHANNELID = "2";
-    public static final String BUS_TRACKING_SERVICENOTIFS_CHANNELID = "2";
+    public static final String BUS_TRACKING_SERVICENOTIFS_CHANNELID = "3";
     public static String GLOBAL_CHAT = "global_chat";
     public static ArrayList<String> fresher_email = new ArrayList<String>(Arrays.asList(
             "ssnsection1@gmail.com", "ssn2019_s2@googlegroups.com", "s3ssn2019@gmail.com",

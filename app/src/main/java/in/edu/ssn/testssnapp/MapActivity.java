@@ -1680,7 +1680,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel notificationChannel = new NotificationChannel(channelIdString, "Location Sharing Status", NotificationManager.IMPORTANCE_DEFAULT);
+            NotificationChannel notificationChannel = new NotificationChannel(channelIdString, "Bus Tracking Status", NotificationManager.IMPORTANCE_MAX);
             notificationChannel.enableLights(true);
             notificationChannel.enableVibration(true);
             notificationChannel.setLightColor(Color.BLUE);
