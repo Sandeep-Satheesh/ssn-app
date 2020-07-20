@@ -811,7 +811,8 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
 
         if (busTrackingMap != null) {
             runOnUiThread(() -> {
-                if (getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED)) {
+                if (getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.RESUMED)) {
+                    showForceCloseWarning();
                     if (busTrackingMap.getVisibility() != View.VISIBLE)
                         tvNoVolunteer.setText(R.string.fetching_location);
                     else
