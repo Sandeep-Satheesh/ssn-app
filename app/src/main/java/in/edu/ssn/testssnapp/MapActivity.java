@@ -1376,7 +1376,16 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                     return;
                 runOnUiThread(() -> {
                     busObject.moveMarker(googleMap, location);
+                    if ((currentBusObject.isSharerOnline() && isBusOnlineIV.getTag().toString().equals("offline"))
+                            || (!currentBusObject.isSharerOnline() && isBusOnlineIV.getTag().toString().equals("online"))) {
+                        if (SharedPref.getBoolean(getApplicationContext(), "service_suspended")) {
+                            currentBusObject.setUserOnline(false);
+                            return;
+                        }
+                        currentBusObject.setUserOnline(currentBusObject.isSharerOnline());
+                    }
                 });
+
             }
 
             @Override
