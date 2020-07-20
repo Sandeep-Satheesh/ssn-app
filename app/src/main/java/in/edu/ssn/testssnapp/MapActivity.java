@@ -1105,137 +1105,47 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         if (pd != null) pd.dismiss();
     }
 
-    private void activateInfoChangedListeners() {
-        busLocRef.removeEventListener(routeExistslistener);
-        new Thread(() -> {
-            while (!Thread.currentThread().isInterrupted()) {
-                if (updateListenerToMain) {
-                    if (currentBusObject == null) {
-                        if (tvVolunteerDetails.getVisibility() == View.VISIBLE)
-                            runOnUiThread(() -> tvVolunteerDetails.setText("No data available currently."));
-                    } else runOnUiThread(() -> tvVolunteerDetails.setVisibility(View.VISIBLE));
-                    locationChangedListener = new ValueEventListener() {
-                        @Override
-                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                            String latLongString = dataSnapshot.getValue(String.class);
-                            if (latLongString == null) {
-                                return;
-                            }
-                            if ((currentBusObject.isSharerOnline() && isBusOnlineIV.getTag().toString().equals("offline"))) {
-                                if (SharedPref.getBoolean(getApplicationContext(), "service_suspended")) {
-                                    currentBusObject.setUserOnline(false);
-                                    return;
-                                }
-                                currentBusObject.setUserOnline(currentBusObject.isSharerOnline());
-                            }
-                            int sep = latLongString.indexOf(',');
-                            LatLng currentlatLongs = new LatLng(sep == 1 ? 0 : Double.parseDouble(latLongString.substring(0, sep - 1)), sep == 1 ? 0 : Double.parseDouble(latLongString.substring(sep + 1)));
-                            currentBusObject.setLocation(currentlatLongs, handler, googleMap);
-                        }
+    public static void showNotification(int id, String channelIdString, String title, String message, Context context, Intent intent) {
+        PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 
-                        @Override
-                        public void onCancelled(@NonNull DatabaseError error) {
-                        }
-                    };
-                    onlineStatusChangedListener = new ValueEventListener() {
-                        @Override
-                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                            Boolean isSharingLoc = dataSnapshot.getValue(Boolean.class);
-                            if (currentBusObject == null) return;
-                            if (isSharingLoc == null) {
-                                if (!currentBusObject.isSharerOnline()) return;
-                                if (CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class)) {
-                                    showTimeElapsedTV = false;
-                                    hideLastUpdatedTV();
-                                }
-                                deactivateInfoChangedListeners();
-                                currentBusObject.setUserOnline(false);
-                                Thread.currentThread().interrupt();
-                                return;
-                            } else if ((currentBusObject.isSharerOnline() != isSharingLoc)) {
-                                showTimeElapsedTV = true;
-                                currentBusObject.setUserOnline(isSharingLoc);
-                            }
-                            if (isVolunteerOfThisBus())
-                                if (getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.RESUMED)) {
-                                    if (!currentBusObject.isSharerOnline())
-                                        runOnUiThread(() -> {
-                                            cmdStartVolunteering.setImageResource(R.drawable.ic_location_on);
-                                            cmdStartVolunteering.setEnabled(true);
-                                        });
-                                    else if (cmdStartVolunteering.isEnabled() && !SharedPref.getString(getApplicationContext(), "email").equals(currentBusObject.getCurrentVolunteerId()))
-                                        runOnUiThread(() -> {
-                                            cmdStartVolunteering.setImageResource(R.drawable.ic_location_on_disabled);
-                                            cmdStartVolunteering.setEnabled(false);
-                                        });
-                                }
-                        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel notificationChannel = new NotificationChannel(channelIdString, "Bus Tracking Status", NotificationManager.IMPORTANCE_HIGH);
+            notificationChannel.enableLights(true);
+            notificationChannel.enableVibration(true);
+            notificationChannel.setLightColor(Color.BLUE);
+            notificationChannel.setSound(Settings.System.DEFAULT_NOTIFICATION_URI,
+                    new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).build());
+            notificationChannel.setDescription("Bus Tracking Volunteer Status alerts.");
+            notificationManager.createNotificationChannel(notificationChannel);
 
-                        @Override
-                        public void onCancelled(@NonNull DatabaseError error) {
-                        }
-                    };
-                    speedChangedListener = new ValueEventListener() {
-                        @Override
-                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                            Integer speed = dataSnapshot.getValue(Integer.class);
-                            if (speed != null) {
-                                currentBusObject.setSpeed((int) (speed * 3.6));
-                            }
-                        }
+            NotificationCompat.Builder nbuilder = new NotificationCompat.Builder(context, channelIdString)
+                    .setContentTitle(title)
+                    .setSmallIcon(R.drawable.ssn_logo)
+                    .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
+                    .setChannelId(channelIdString)
+                    .setAutoCancel(true)
+                    .setLights(Color.BLUE, 500, 500)
+                    .setColorized(true)
+                    .setColor(ContextCompat.getColor(context, R.color.colorAccent))
+                    .setContentIntent(pendingIntent);
+            Notification n = nbuilder.build();
+            n.flags = n.flags | Notification.FLAG_ONLY_ALERT_ONCE;
+            notificationManager.notify(id, n);
 
-                        @Override
-                        public void onCancelled(@NonNull DatabaseError error) {
-                        }
-                    };
-                    sharerChangedListener = new ValueEventListener() {
-                        int sharerChangeCount = 0;
-                        long lastSharerChangeTime = 0;
+        } else {
+            NotificationCompat.Builder nbuilder = new NotificationCompat.Builder(context, channelIdString)
+                    .setContentTitle(title)
+                    .setSmallIcon(R.drawable.ssn_logo)
+                    .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
+                    .setAutoCancel(true)
+                    .setPriority(Notification.PRIORITY_HIGH)
+                    .setSound(Settings.System.DEFAULT_NOTIFICATION_URI)
+                    .setContentIntent(pendingIntent);
 
-                        @Override
-                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                            String sharerId = dataSnapshot.getValue(String.class);
-                            if (sharerId != null && !sharerId.equals("null")) {
-                                if (isVolunteerOfThisBus())
-                                    if (sharerChangeCount >= 3) {
-                                        showNotification(3, Constants.BUS_TRACKING_GENERALNOTIFS_CHANNELID, "Concurrency detected!", "Another volunteer started sharing their location at the same time as you! One of you has been rejected by the system. Please check if your bus has a volunteer currently!", MapActivity.this, new Intent(MapActivity.this, MapActivity.class).putExtra("routeNo", routeNo == null ? SharedPref.getString(getApplicationContext(), "routeNo") : routeNo));
-                                        Toast.makeText(getApplicationContext(), "Concurrency detected! One of you has been rejected by the system. Please check if your bus has a volunteer currently!", Toast.LENGTH_LONG).show();
-                                        stopLocationTransmission(false);
-                                        sharerChangeCount = 0;
-                                    } else if (CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class) && !SharedPref.getBoolean(getApplicationContext(), "service_suspended") && System.currentTimeMillis() - lastSharerChangeTime < 1000) {
-                                        sharerChangeCount++;
-                                    }
-                                lastSharerChangeTime = System.currentTimeMillis();
-                                runOnUiThread(() -> currentBusObject.setCurrentVolunteerId(sharerId));
-
-                            } else runOnUiThread(() -> {
-                                cmdStartVolunteering.setEnabled(true);
-                                cmdStartVolunteering.setImageResource(R.drawable.ic_location_on);
-                            });
-                            startTime = System.currentTimeMillis();
-                        }
-
-                        @Override
-                        public void onCancelled(@NonNull DatabaseError error) {
-                        }
-                    };
-                    busLocRef.child("currentSharerID").addValueEventListener(sharerChangedListener);
-                    busLocRef.child("sharingLoc").addValueEventListener(onlineStatusChangedListener);
-                    busLocRef.child("speed").addValueEventListener(speedChangedListener);
-                    busLocRef.child("latLong").addValueEventListener(locationChangedListener);
-                    updateListenerToMain = false;
-                }
-            }
-        }).start();
-        if (timer == null) {
-            timer = new Timer(false);
-            timer.scheduleAtFixedRate(new TimerTask() {
-                @Override
-                public void run() {
-                    if (showTimeElapsedTV)
-                        updateTimeElapsedTextViews();
-                }
-            }, 0, 60000);
+            Notification n = nbuilder.build();
+            n.flags = Notification.FLAG_ONLY_ALERT_ONCE;
+            notificationManager.notify(id, n);
         }
     }
 
@@ -1675,47 +1585,138 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
         finish();
     }
 
-    public static void showNotification(int id, String channelIdString, String title, String message, Context context, Intent intent) {
-        PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+    private void activateInfoChangedListeners() {
+        busLocRef.removeEventListener(routeExistslistener);
+        new Thread(() -> {
+            while (!Thread.currentThread().isInterrupted()) {
+                if (updateListenerToMain) {
+                    if (currentBusObject == null) {
+                        if (tvVolunteerDetails.getVisibility() == View.VISIBLE)
+                            runOnUiThread(() -> tvVolunteerDetails.setText("No data available currently."));
+                    } else runOnUiThread(() -> tvVolunteerDetails.setVisibility(View.VISIBLE));
+                    locationChangedListener = new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                            String latLongString = dataSnapshot.getValue(String.class);
+                            if (latLongString == null) {
+                                return;
+                            }
+                            if ((currentBusObject.isSharerOnline() && isBusOnlineIV.getTag().toString().equals("offline"))) {
+                                if (SharedPref.getBoolean(getApplicationContext(), "service_suspended")) {
+                                    currentBusObject.setUserOnline(false);
+                                    return;
+                                }
+                                currentBusObject.setUserOnline(currentBusObject.isSharerOnline());
+                            }
+                            int sep = latLongString.indexOf(',');
+                            LatLng currentlatLongs = new LatLng(sep == 1 ? 0 : Double.parseDouble(latLongString.substring(0, sep - 1)), sep == 1 ? 0 : Double.parseDouble(latLongString.substring(sep + 1)));
+                            currentBusObject.setLocation(currentlatLongs, handler, googleMap);
+                        }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel notificationChannel = new NotificationChannel(channelIdString, "Bus Tracking Status", NotificationManager.IMPORTANCE_MAX);
-            notificationChannel.enableLights(true);
-            notificationChannel.enableVibration(true);
-            notificationChannel.setLightColor(Color.BLUE);
-            notificationChannel.setSound(Settings.System.DEFAULT_NOTIFICATION_URI,
-                    new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).build());
-            notificationChannel.setDescription("Bus Tracking Volunteer Status alerts.");
-            notificationManager.createNotificationChannel(notificationChannel);
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError error) {
+                        }
+                    };
+                    onlineStatusChangedListener = new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                            Boolean isSharingLoc = dataSnapshot.getValue(Boolean.class);
+                            if (currentBusObject == null) return;
+                            if (isSharingLoc == null) {
+                                if (!currentBusObject.isSharerOnline()) return;
+                                if (CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class)) {
+                                    showTimeElapsedTV = false;
+                                    hideLastUpdatedTV();
+                                }
+                                deactivateInfoChangedListeners();
+                                currentBusObject.setUserOnline(false);
+                                Thread.currentThread().interrupt();
+                                return;
+                            } else if ((currentBusObject.isSharerOnline() != isSharingLoc)) {
+                                showTimeElapsedTV = true;
+                                currentBusObject.setUserOnline(isSharingLoc);
+                            }
+                            if (isVolunteerOfThisBus())
+                                if (getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.RESUMED)) {
+                                    if (!currentBusObject.isSharerOnline())
+                                        runOnUiThread(() -> {
+                                            cmdStartVolunteering.setImageResource(R.drawable.ic_location_on);
+                                            cmdStartVolunteering.setEnabled(true);
+                                        });
+                                    else if (cmdStartVolunteering.isEnabled() && !SharedPref.getString(getApplicationContext(), "email").equals(currentBusObject.getCurrentVolunteerId()))
+                                        runOnUiThread(() -> {
+                                            cmdStartVolunteering.setImageResource(R.drawable.ic_location_on_disabled);
+                                            cmdStartVolunteering.setEnabled(false);
+                                        });
+                                }
+                        }
 
-            NotificationCompat.Builder nbuilder = new NotificationCompat.Builder(context, channelIdString)
-                    .setContentTitle(title)
-                    .setSmallIcon(R.drawable.ssn_logo)
-                    .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
-                    .setChannelId(channelIdString)
-                    .setAutoCancel(true)
-                    .setLights(Color.BLUE, 500, 500)
-                    .setColorized(true)
-                    .setColor(ContextCompat.getColor(context, R.color.colorAccent))
-                    .setContentIntent(pendingIntent);
-            Notification n = nbuilder.build();
-            n.flags = n.flags | Notification.FLAG_ONLY_ALERT_ONCE;
-            notificationManager.notify(id, n);
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError error) {
+                        }
+                    };
+                    speedChangedListener = new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                            Integer speed = dataSnapshot.getValue(Integer.class);
+                            if (speed != null) {
+                                currentBusObject.setSpeed((int) (speed * 3.6));
+                            }
+                        }
 
-        } else {
-            NotificationCompat.Builder nbuilder = new NotificationCompat.Builder(context, channelIdString)
-                    .setContentTitle(title)
-                    .setSmallIcon(R.drawable.ssn_logo)
-                    .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
-                    .setAutoCancel(true)
-                    .setPriority(Notification.PRIORITY_HIGH)
-                    .setSound(Settings.System.DEFAULT_NOTIFICATION_URI)
-                    .setContentIntent(pendingIntent);
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError error) {
+                        }
+                    };
+                    sharerChangedListener = new ValueEventListener() {
+                        int sharerChangeCount = 0;
+                        long lastSharerChangeTime = 0;
 
-            Notification n = nbuilder.build();
-            n.flags = Notification.FLAG_ONLY_ALERT_ONCE;
-            notificationManager.notify(id, n);
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                            String sharerId = dataSnapshot.getValue(String.class);
+                            if (sharerId != null && !sharerId.equals("null")) {
+                                if (isVolunteerOfThisBus())
+                                    if (sharerChangeCount >= 3) {
+                                        showNotification(3, Constants.BUS_TRACKING_GENERALNOTIFS_CHANNELID, "Concurrency detected!", "Another volunteer started sharing their location at the same time as you! One of you has been rejected by the system. Please check if your bus has a volunteer currently!", MapActivity.this, new Intent(MapActivity.this, MapActivity.class).putExtra("routeNo", routeNo == null ? SharedPref.getString(getApplicationContext(), "routeNo") : routeNo));
+                                        Toast.makeText(getApplicationContext(), "Concurrency detected! One of you has been rejected by the system. Please check if your bus has a volunteer currently!", Toast.LENGTH_LONG).show();
+                                        stopLocationTransmission(false);
+                                        sharerChangeCount = 0;
+                                    } else if (CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class) && !SharedPref.getBoolean(getApplicationContext(), "service_suspended") && System.currentTimeMillis() - lastSharerChangeTime < 1000) {
+                                        sharerChangeCount++;
+                                    } else if (System.currentTimeMillis() - lastSharerChangeTime > 1000)
+                                        sharerChangeCount = 0;
+                                lastSharerChangeTime = System.currentTimeMillis();
+                                runOnUiThread(() -> currentBusObject.setCurrentVolunteerId(sharerId));
+
+                            } else runOnUiThread(() -> {
+                                cmdStartVolunteering.setEnabled(true);
+                                cmdStartVolunteering.setImageResource(R.drawable.ic_location_on);
+                            });
+                            startTime = System.currentTimeMillis();
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError error) {
+                        }
+                    };
+                    busLocRef.child("currentSharerID").addValueEventListener(sharerChangedListener);
+                    busLocRef.child("sharingLoc").addValueEventListener(onlineStatusChangedListener);
+                    busLocRef.child("speed").addValueEventListener(speedChangedListener);
+                    busLocRef.child("latLong").addValueEventListener(locationChangedListener);
+                    updateListenerToMain = false;
+                }
+            }
+        }).start();
+        if (timer == null) {
+            timer = new Timer(false);
+            timer.scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    if (showTimeElapsedTV)
+                        updateTimeElapsedTextViews();
+                }
+            }, 0, 60000);
         }
     }
 }
