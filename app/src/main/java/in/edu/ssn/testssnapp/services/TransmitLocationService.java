@@ -41,7 +41,7 @@ import in.edu.ssn.testssnapp.utils.SystemTimeChangedReceiver;
 public class TransmitLocationService extends Service implements LocationListener {
     DatabaseReference busLocDBRef;
     LocationManager locationManager;
-    volatile boolean suspendFlag = false, allowLocationFromMockProvider = false;
+    volatile boolean suspendFlag = false;
     //    double SSNCEPolygon[]; //TODO: The polygon within which we have to check to stop service automatically; check note at end.
     public static final String ACTION_START_FOREGROUND_SERVICE = "ACTION_START_FOREGROUND_SERVICE";
     public static final String ACTION_STOP_FOREGROUND_SERVICE = "ACTION_STOP_FOREGROUND_SERVICE";
@@ -100,7 +100,6 @@ public class TransmitLocationService extends Service implements LocationListener
         if (intent == null || intent.getAction() == null) {
             return super.onStartCommand(intent, flags, startId);
         }
-        allowLocationFromMockProvider = SharedPref.getBoolean(getApplicationContext(), "allow_mockloc_provider");
         switch (intent.getAction()) {
             case ACTION_START_FOREGROUND_SERVICE:
                 locationManager = (LocationManager) this.getSystemService(LOCATION_SERVICE);
@@ -109,7 +108,9 @@ public class TransmitLocationService extends Service implements LocationListener
                 SharedPref.putBoolean(getApplicationContext(), "service_suspended", suspendFlag);
                 userID = SharedPref.getString(getApplicationContext(), "email");
 
+                //Build the notification...
                 validateCurrentTime();
+                startForeground(1, prepareForegroundServiceNotification(true, "Sharing your location", "Your location will be used to determine your bus' location.", this, new Intent(this, MapActivity.class).setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP).putExtra("routeNo", routeNo == null ? SharedPref.getString(getApplicationContext(), "routeNo") : routeNo)));
 
                 busLocDBRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo);
                 try {
@@ -145,13 +146,19 @@ public class TransmitLocationService extends Service implements LocationListener
                 }
                 busLocDBRef.child("currentSharerID").onDisconnect().setValue("null");
                 busLocDBRef.child("sharingLoc").onDisconnect().setValue(false);
-                //Build the notification...
-                startForeground(1, prepareForegroundServiceNotification(true, "Sharing your location", "Your location will be used to determine your bus' location.", this, new Intent(this, MapActivity.class).setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP).putExtra("routeNo", routeNo == null ? SharedPref.getString(getApplicationContext(), "routeNo") : routeNo)));
 //                Toast.makeText(getApplicationContext(), "Location Sharing started successfully.", Toast.LENGTH_SHORT).show();
 
                 break;
             case ACTION_CHANGE_NOTIFICATION_MESSAGE:
-                locationManager = (LocationManager) this.getSystemService(LOCATION_SERVICE);
+                validateCurrentTime();
+                String messageTitle = intent.getStringExtra("messageTitle"), messageContent = intent.getStringExtra("messageContent");
+                suspendFlag = intent.getBooleanExtra("suspendFlag", false);
+
+                if (messageTitle != null) {
+                    startForeground(1, prepareForegroundServiceNotification(!messageTitle.contains("Reconnecting"), messageTitle, messageContent, this, new Intent(this, MapActivity.class).setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP).putExtra("routeNo", routeNo == null ? SharedPref.getString(getApplicationContext(), "routeNo") : routeNo)));
+                }
+                if (locationManager == null)
+                    locationManager = (LocationManager) this.getSystemService(LOCATION_SERVICE);
                 routeNo = intent.getStringExtra("routeNo");
                 suspendFlag = intent.getBooleanExtra("suspendFlag", true);
                 SharedPref.putBoolean(getApplicationContext(), "service_suspended", suspendFlag);
@@ -161,14 +168,9 @@ public class TransmitLocationService extends Service implements LocationListener
                     SharedPref.putInt(getApplicationContext(), "disruption_count", disruptionCount + 1);
                 }
                 userID = SharedPref.getString(getApplicationContext(), "email");
-                busLocDBRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo);
-                validateCurrentTime();
+                if (busLocDBRef == null)
+                    busLocDBRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo);
 
-                String messageTitle = intent.getStringExtra("messageTitle"), messageContent = intent.getStringExtra("messageContent");
-                suspendFlag = intent.getBooleanExtra("suspendFlag", false);
-                if (messageTitle != null) {
-                    startForeground(1, prepareForegroundServiceNotification(!messageTitle.contains("Reconnecting"), messageTitle, messageContent, this, new Intent(this, MapActivity.class).setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP).putExtra("routeNo", routeNo == null ? SharedPref.getString(getApplicationContext(), "routeNo") : routeNo)));
-                }
                 break;
             case ACTION_STOP_FOREGROUND_SERVICE:
                 locationManager = (LocationManager) this.getSystemService(LOCATION_SERVICE);
@@ -220,7 +222,7 @@ public class TransmitLocationService extends Service implements LocationListener
     }
 
     private void checkLocationValidity(Location location) {
-        if (location.isFromMockProvider() && !allowLocationFromMockProvider) {
+        if (location.isFromMockProvider() && !SharedPref.getBoolean(getApplicationContext(), "allow_mockloc_provider")) {
             try {
                 locationManager.removeUpdates(TransmitLocationService.this);
             } catch (Exception e) {
@@ -241,7 +243,9 @@ public class TransmitLocationService extends Service implements LocationListener
                 i.putExtra("deleteDBValue", false);
                 Toast.makeText(getApplicationContext(), "You are not allowed to emulate your GPS location! The service is stopping...", Toast.LENGTH_LONG).show();
                 startActivity(new Intent(this, BusRoutesActivity.class).setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK));
-                startService(i);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(i);
+                } else startService(i);
             });
         }
     }
