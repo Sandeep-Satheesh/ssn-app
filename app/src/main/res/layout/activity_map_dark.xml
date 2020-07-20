@@ -164,8 +164,8 @@
 
                                 <ImageButton
                                     android:id="@+id/start"
-                                    android:layout_width="24dp"
-                                    android:layout_height="24dp"
+                                    android:layout_width="48dp"
+                                    android:layout_height="48dp"
                                     android:layout_gravity="center"
                                     android:layout_marginEnd="20dp"
                                     android:background="?android:selectableItemBackground"

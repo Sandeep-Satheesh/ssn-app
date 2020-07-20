@@ -341,6 +341,9 @@ public class TransmitLocationService extends Service implements LocationListener
                 endTime = SharedPref.getString(getApplicationContext(), "bustracking_endtime");
 
         if (!(currentTime.compareTo(endTime) < 0 && currentTime.compareTo(startTime) > 0)) {
+            if (busLocDBRef == null)
+                busLocDBRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo == null ? SharedPref.getString(getApplicationContext(), "routeNo") : routeNo);
+
             MapActivity.showNotification(4, Constants.BUS_TRACKING_GENERALNOTIFS_CHANNELID, "Location sharing force-stopped.", "You have exceeded the time limit allowed to use this feature! Thank you for your services.", getApplicationContext(), new Intent());
             try {
                 Toast.makeText(getApplicationContext(), "The current time is: " + currentTime + " hrs. You have exceeded the allowed time limits to use this feature!", Toast.LENGTH_LONG).show();
