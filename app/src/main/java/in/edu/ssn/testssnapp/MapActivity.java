@@ -633,11 +633,9 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                                 else
                                     attemptToEnableGPS();
                                 pd.dismiss();
-                                showForceCloseWarning();
                                 return;
                             } else {
                                 attemptToEnableGPS();
-                                showForceCloseWarning();
                             }
 
                         }
@@ -657,7 +655,6 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                             } else attemptToEnableGPS();
                         }
                         pd.dismiss();
-                        showForceCloseWarning();
                         cmdStartVolunteering.setImageResource(R.drawable.ic_location_on);
                         cmdStartVolunteering.setEnabled(true);
                     }
@@ -791,7 +788,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                             if (currentBusObject != null)
                                 currentBusObject.setCurrentVolunteerId(s);
                         } else {
-                            busLocRef.removeValue();
+                            busLocRef.child("latLong").removeValue();
                             busLocRef.child("currentSharerID").setValue(SharedPref.getString(getApplicationContext(), "email"));
                             busLocRef.child("sharingLoc").setValue(true);
                             switchToVolunteerNetworkCallback();
@@ -1599,6 +1596,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                         public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                             String latLongString = dataSnapshot.getValue(String.class);
                             if (latLongString == null) {
+                                if (currentBusObject != null) currentBusObject.setUserOnline(false);
                                 return;
                             }
                             if ((currentBusObject.isSharerOnline() && isBusOnlineIV.getTag().toString().equals("offline"))) {
@@ -1675,6 +1673,8 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                         @Override
                         public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                             String sharerId = dataSnapshot.getValue(String.class);
+                            if (userId == null || userId.isEmpty())
+                                userId = SharedPref.getString(getApplicationContext(), "email");
                             if (sharerId != null && !sharerId.equals("null")) {
                                 if (isVolunteerOfThisBus())
                                     if (sharerChangeCount >= 3) {
@@ -1682,7 +1682,7 @@ public class MapActivity extends BaseActivity implements GoogleMap.OnMarkerClick
                                         Toast.makeText(getApplicationContext(), "Concurrency detected! One of you has been rejected by the system. Please check if your bus has a volunteer currently!", Toast.LENGTH_LONG).show();
                                         stopLocationTransmission(false);
                                         sharerChangeCount = 0;
-                                    } else if (CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class) && !SharedPref.getBoolean(getApplicationContext(), "service_suspended") && System.currentTimeMillis() - lastSharerChangeTime < 1000) {
+                                    } else if (CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class) && !SharedPref.getBoolean(getApplicationContext(), "service_suspended") && System.currentTimeMillis() - lastSharerChangeTime < 1000 && !currentBusObject.getCurrentVolunteerId().equals(userId)) {
                                         sharerChangeCount++;
                                     } else if (System.currentTimeMillis() - lastSharerChangeTime > 1000)
                                         sharerChangeCount = 0;
