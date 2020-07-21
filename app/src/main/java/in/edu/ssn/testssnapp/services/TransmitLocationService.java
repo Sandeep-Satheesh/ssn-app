@@ -59,25 +59,26 @@ public class TransmitLocationService extends Service implements LocationListener
         //Uri alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Notification.Builder builder;
             notificationManager.createNotificationChannel(new NotificationChannel(Constants.BUS_TRACKING_SERVICENOTIFS_CHANNELID, "Bus-Tracking service status", NotificationManager.IMPORTANCE_HIGH));
             NotificationChannel channel = notificationManager.getNotificationChannel(Constants.BUS_TRACKING_SERVICENOTIFS_CHANNELID);
             channel.enableLights(true);
             channel.setLightColor(Color.BLUE);
             channel.setDescription("Bus Tracking Volunteer Status");
             channel.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE), new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).build());
-            nbuilder = new NotificationCompat.Builder(context, Constants.BUS_TRACKING_SERVICENOTIFS_CHANNELID)
+            builder = new Notification.Builder(context, Constants.BUS_TRACKING_SERVICENOTIFS_CHANNELID)
                     .setContentTitle(title)
                     .setSmallIcon(R.drawable.ssn_logo)
-                    .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
+                    .setStyle(new Notification.BigTextStyle().bigText(message))
                     .setChannelId(Constants.BUS_TRACKING_SERVICENOTIFS_CHANNELID)
-                    .setPriority(NotificationManager.IMPORTANCE_MAX)
                     .setCategory(Notification.CATEGORY_SERVICE)
-                    .setColorized(false)
+                    .setColorized(true)
+                    .setColor(context.getResources().getColor(R.color.colorAccent))
                     .setAutoCancel(false)
                     .setOngoing(true)
                     .setContentIntent(pendingIntent);
 
-            return nbuilder.build();
+            return builder.build();
         } else {
             nbuilder = new NotificationCompat.Builder(context, Constants.BUS_TRACKING_SERVICENOTIFS_CHANNELID)
                     .setContentTitle(title)
@@ -86,8 +87,9 @@ public class TransmitLocationService extends Service implements LocationListener
                     .setAutoCancel(false)
                     .setPriority(NotificationManagerCompat.IMPORTANCE_MAX)
                     .setCategory(NotificationCompat.CATEGORY_SERVICE)
+                    .setColorized(true)
                     .setOngoing(true)
-                    .setColor(Color.LTGRAY)
+                    .setColor(context.getResources().getColor(R.color.colorAccent))
                     .setSound(Settings.System.DEFAULT_NOTIFICATION_URI)
                     .setContentIntent(pendingIntent);
 
@@ -105,7 +107,6 @@ public class TransmitLocationService extends Service implements LocationListener
                 locationManager = (LocationManager) this.getSystemService(LOCATION_SERVICE);
                 routeNo = intent.getStringExtra("routeNo");
                 suspendFlag = intent.getBooleanExtra("suspendFlag", true);
-                SharedPref.putBoolean(getApplicationContext(), "service_suspended", suspendFlag);
                 userID = SharedPref.getString(getApplicationContext(), "email");
 
                 //Build the notification...
@@ -113,6 +114,10 @@ public class TransmitLocationService extends Service implements LocationListener
                 startForeground(1, prepareForegroundServiceNotification(true, "Sharing your location", "Your location will be used to determine your bus' location.", this, new Intent(this, MapActivity.class).setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP).putExtra("routeNo", routeNo == null ? SharedPref.getString(getApplicationContext(), "routeNo") : routeNo)));
 
                 busLocDBRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo);
+
+                busLocDBRef.child("sharingLoc").onDisconnect().cancel();
+                busLocDBRef.child("currentSharerID").onDisconnect().cancel();
+
                 try {
                     unregisterReceiver(systemTimeChangedReceiver);
                 } catch (Exception e) {
@@ -161,7 +166,6 @@ public class TransmitLocationService extends Service implements LocationListener
                     locationManager = (LocationManager) this.getSystemService(LOCATION_SERVICE);
                 routeNo = intent.getStringExtra("routeNo");
                 suspendFlag = intent.getBooleanExtra("suspendFlag", true);
-                SharedPref.putBoolean(getApplicationContext(), "service_suspended", suspendFlag);
 
                 if (suspendFlag) {
                     int disruptionCount = SharedPref.getInt(getApplicationContext(), "disruption_count");
@@ -176,7 +180,6 @@ public class TransmitLocationService extends Service implements LocationListener
                 locationManager = (LocationManager) this.getSystemService(LOCATION_SERVICE);
                 routeNo = intent.getStringExtra("routeNo");
                 suspendFlag = intent.getBooleanExtra("suspendFlag", true);
-                SharedPref.putBoolean(getApplicationContext(), "service_suspended", false);
                 userID = SharedPref.getString(getApplicationContext(), "email");
                 if (routeNo != null && !routeNo.isEmpty())
                     busLocDBRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo);
@@ -188,8 +191,6 @@ public class TransmitLocationService extends Service implements LocationListener
                     e.printStackTrace();
                 }
                 if (busLocDBRef != null) {
-                    busLocDBRef.child("currentSharerID").onDisconnect().cancel();
-                    busLocDBRef.child("sharingLoc").onDisconnect().cancel();
                     if (intent.getBooleanExtra("deleteDBValue", false)) {
                         busLocDBRef.removeValue();
                     }

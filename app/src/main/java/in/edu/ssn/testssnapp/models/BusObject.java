@@ -34,11 +34,6 @@ public class BusObject {
 
     public void setSpeed(int speed) {
         this.speed = speed;
-        if (busMarker != null && busMarker.isInfoWindowShown()) {
-            busMarker.hideInfoWindow();
-            busMarker.setTitle("Est. Speed: " + speed + " km/h");
-            busMarker.showInfoWindow();
-        }
         locationUpdatedListener.onSpeedChanged(routeNo, speed);
     }
 
