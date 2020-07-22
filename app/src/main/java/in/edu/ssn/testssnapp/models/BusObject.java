@@ -20,21 +20,27 @@ public class BusObject {
 
     volatile LatLng position;
     volatile Marker busMarker;
-    volatile OnInfoUpdatedListener locationUpdatedListener;
+    volatile OnInfoUpdatedListener infoUpdatedListener;
     volatile boolean isSharerOnline;
     public volatile boolean isMarkerVisible;
     volatile int speed;
 
 
-    public void setUserOnline(boolean sharerOnline) {
-//        if (sharerOnline == isSharerOnline) return;
-        isSharerOnline = sharerOnline;
-        locationUpdatedListener.onOnlineStatusChanged(routeNo, sharerOnline);
+    public BusObject() {
+        isSharerOnline = false;
+        speed = 0;
+        routeNo = currentVolunteerId = "";
+        isMarkerVisible = false;
+        infoUpdatedListener = null;
     }
 
-    public void setSpeed(int speed) {
+    public BusObject(String routeNo, String currentVolunteerId, Marker busMarker, int speed, boolean isSharerOnline, OnInfoUpdatedListener infoUpdatedListener) {
+        this.currentVolunteerId = currentVolunteerId;
+        this.busMarker = busMarker;
+        this.routeNo = routeNo;
         this.speed = speed;
-        locationUpdatedListener.onSpeedChanged(routeNo, speed);
+        this.isSharerOnline = isSharerOnline;
+        this.infoUpdatedListener = infoUpdatedListener;
     }
 
     public String getRouteNo() {
@@ -49,25 +55,20 @@ public class BusObject {
         return speed;
     }
 
-    public void setInfoUpdatedListener(OnInfoUpdatedListener locationUpdatedListener) {
-        this.locationUpdatedListener = locationUpdatedListener;
+    public void setUserOnline(boolean sharerOnline) {
+//        if (sharerOnline == isSharerOnline) return;
+        isSharerOnline = sharerOnline;
+        infoUpdatedListener.onOnlineStatusChanged(routeNo, sharerOnline);
     }
 
-    public BusObject() {
-        isSharerOnline = false;
-        speed = 0;
-        routeNo = currentVolunteerId = "";
-        isMarkerVisible = false;
-        locationUpdatedListener = null;
-    }
-
-    public BusObject(String routeNo, String currentVolunteerId, Marker busMarker, int speed, boolean isSharerOnline, OnInfoUpdatedListener locationUpdatedListener) {
-        this.currentVolunteerId = currentVolunteerId;
-        this.busMarker = busMarker;
-        this.routeNo = routeNo;
+    public void setSpeed(int speed) {
         this.speed = speed;
-        this.isSharerOnline = isSharerOnline;
-        this.locationUpdatedListener = locationUpdatedListener;
+        if (infoUpdatedListener != null)
+            infoUpdatedListener.onSpeedChanged(routeNo, speed);
+    }
+
+    public void setInfoUpdatedListener(OnInfoUpdatedListener locationUpdatedListener) {
+        this.infoUpdatedListener = locationUpdatedListener;
     }
 
     public Marker getBusMarker() {
@@ -114,9 +115,11 @@ public class BusObject {
         if (position != null && position.latitude == location.latitude && position.longitude == location.longitude)
             return;
         position = location;
-        if (busMarker != null)
+        if (busMarker != null) {
+            busMarker.remove();
             busMarker.setPosition(location);
-        locationUpdatedListener.onLocationChanged(routeNo, location);
+        }
+        infoUpdatedListener.onLocationChanged(routeNo, location);
     }
 
     public void setBusMarker(Marker busLocation) {
@@ -130,22 +133,27 @@ public class BusObject {
     public void setCurrentVolunteerId(String currentVolunteerId) {
         if (currentVolunteerId.equals(this.currentVolunteerId)) return;
         this.currentVolunteerId = currentVolunteerId;
-        locationUpdatedListener.onSharerIdChanged(routeNo, currentVolunteerId);
+        infoUpdatedListener.onSharerIdChanged(routeNo, currentVolunteerId);
     }
 
-    public void moveMarker(GoogleMap googleMap, LatLng newLatLng) {
-        if (busMarker == null) return;
-
+    public void moveMarker(GoogleMap googleMap, Handler handler, LatLng location) {
+        if (busMarker == null || googleMap == null) return;
+        if (position == null) {
+            handler.post(() -> googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 18f)));
+        }
+        if (position != null && position.latitude == location.latitude && position.longitude == location.longitude)
+            return;
+        position = location;
         boolean contains = googleMap.getProjection()
                 .getVisibleRegion()
                 .latLngBounds
-                .contains(newLatLng);
-
+                .contains(location);
         if (!contains) {
             // MOVE CAMERA
-            googleMap.animateCamera(CameraUpdateFactory.newLatLng(newLatLng));
+            googleMap.animateCamera(CameraUpdateFactory.newLatLng(location));
         }
-        busMarker.setPosition(newLatLng);
+        busMarker.setPosition(location);
+        if (infoUpdatedListener != null) infoUpdatedListener.onLocationChanged(routeNo, location);
     }
 
     public interface OnInfoUpdatedListener {

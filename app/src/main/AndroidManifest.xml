@@ -150,6 +150,7 @@
 
         <activity
             android:name=".MapActivity"
+            android:theme="@style/AppTheme3"
             android:screenOrientation="portrait" />
 
         <meta-data
