@@ -12,11 +12,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 
 public class BusObject {
-    volatile String routeNo, currentVolunteerId;
-
-    public void setRouteNo(String routeNo) {
-        this.routeNo = routeNo;
-    }
+    volatile String currentVolunteerId;
 
     volatile LatLng position;
     volatile Marker busMarker;
@@ -29,7 +25,7 @@ public class BusObject {
     public BusObject() {
         isSharerOnline = false;
         speed = 0;
-        routeNo = currentVolunteerId = "";
+        currentVolunteerId = "";
         isMarkerVisible = false;
         infoUpdatedListener = null;
     }
@@ -37,15 +33,11 @@ public class BusObject {
     public BusObject(String routeNo, String currentVolunteerId, Marker busMarker, int speed, boolean isSharerOnline, OnInfoUpdatedListener infoUpdatedListener) {
         this.currentVolunteerId = currentVolunteerId;
         this.busMarker = busMarker;
-        this.routeNo = routeNo;
         this.speed = speed;
         this.isSharerOnline = isSharerOnline;
         this.infoUpdatedListener = infoUpdatedListener;
     }
 
-    public String getRouteNo() {
-        return routeNo;
-    }
 
     public boolean isSharerOnline() {
         return isSharerOnline;
@@ -58,13 +50,13 @@ public class BusObject {
     public void setUserOnline(boolean sharerOnline) {
 //        if (sharerOnline == isSharerOnline) return;
         isSharerOnline = sharerOnline;
-        infoUpdatedListener.onOnlineStatusChanged(routeNo, sharerOnline);
+        infoUpdatedListener.onOnlineStatusChanged(sharerOnline);
     }
 
     public void setSpeed(int speed) {
         this.speed = speed;
         if (infoUpdatedListener != null)
-            infoUpdatedListener.onSpeedChanged(routeNo, speed);
+            infoUpdatedListener.onSpeedChanged(speed);
     }
 
     public void setInfoUpdatedListener(OnInfoUpdatedListener locationUpdatedListener) {
@@ -119,7 +111,7 @@ public class BusObject {
             busMarker.remove();
             busMarker.setPosition(location);
         }
-        infoUpdatedListener.onLocationChanged(routeNo, location);
+        infoUpdatedListener.onLocationChanged(location);
     }
 
     public void setBusMarker(Marker busLocation) {
@@ -133,7 +125,7 @@ public class BusObject {
     public void setCurrentVolunteerId(String currentVolunteerId) {
         if (currentVolunteerId.equals(this.currentVolunteerId)) return;
         this.currentVolunteerId = currentVolunteerId;
-        infoUpdatedListener.onSharerIdChanged(routeNo, currentVolunteerId);
+        infoUpdatedListener.onSharerIdChanged(currentVolunteerId);
     }
 
     public void moveMarker(GoogleMap googleMap, Handler handler, LatLng location) {
@@ -153,17 +145,17 @@ public class BusObject {
             googleMap.animateCamera(CameraUpdateFactory.newLatLng(location));
         }
         busMarker.setPosition(location);
-        if (infoUpdatedListener != null) infoUpdatedListener.onLocationChanged(routeNo, location);
+        if (infoUpdatedListener != null) infoUpdatedListener.onLocationChanged(location);
     }
 
     public interface OnInfoUpdatedListener {
-        void onSharerIdChanged(String r, String newSharerId);
+        void onSharerIdChanged(String newSharerId);
 
-        void onLocationChanged(String r, LatLng location);
+        void onLocationChanged(LatLng location);
 
-        void onOnlineStatusChanged(String r, boolean isOnline);
+        void onOnlineStatusChanged(boolean isOnline);
 
-        void onSpeedChanged(String r, int newSpeed);
+        void onSpeedChanged(int newSpeed);
     }
 
 }

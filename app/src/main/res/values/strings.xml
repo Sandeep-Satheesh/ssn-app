@@ -37,7 +37,6 @@
     <string name="fb_page_detail">To know more about app updates, visit</string>
     <string name="app_fb_page"><u>facebook.com/ssnceapp</u></string>
     <string name="app_insta_page"><u>instagram.com/ssnce_app</u></string>
-    <string name="location_handover_msg">Hey!\nThank you very much for your services! Another volunteer has taken over the location sharing responsibility right now.\n\n<b>The sharing of your location data to the servers has been stopped.\nYou can now turn off your GPS if you\'re not using it.</b></string>
     <string name="no_volunteer_available">Sorry! There aren\'t any volunteers sharing location for this route right now! Please try again later!</string>
     <string name="sharer_online_status">Sharer Online Status</string>
     <string name="would_you_like_to_volunteer">No one is volunteering for your bus currently! Press the \'Start Volunteering\' button to go!</string>
@@ -49,4 +48,5 @@
     <string name="user_offline">You are offline! Please come online to see your bus\' location!</string>
     <string name="fetching_location">Attempting to fetch your location…</string>
     <string name="location_sharing_forceclose_warning">Newer versions of Android tend to force-close background services when you clear your memory using the task manager. This is also true for any battery saver apps installed on your phone.\nAs you are the current volunteer, your location is being sent to the servers using a background service, and this process can be terminated by Android or other battery saver apps unexpectedly.\nWhile you can still swipe away the app from your task manager after using it, you are requested to not clear your memory, while you are volunteering.\nThank you for your co-operation!</string>
+    <string name="background_service_restriction_warning">Background service restriction warning</string>
 </resources>
