@@ -825,7 +825,7 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
         googleApiClient.connect();
 
         LocationRequest locationRequest = LocationRequest.create();
-        locationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
+        locationRequest.setPriority(LocationRequest.PRIORITY_LOW_POWER);
         locationRequest.setInterval(1000);
         locationRequest.setFastestInterval(0);
         LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder().addLocationRequest(locationRequest);
@@ -1630,7 +1630,7 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
                                 int sep = latLongString.indexOf(',');
                                 LatLng currentlatLongs = new LatLng(sep == 1 ? 0 : Double.parseDouble(latLongString.substring(0, sep)), sep == 1 ? 0 : Double.parseDouble(latLongString.substring(sep + 1)));
                                 if (currentBusObject != null)
-                                    currentBusObject.moveVehicle(currentlatLongs, googleMap, handler);
+                                    currentBusObject.moveMarker(currentlatLongs, googleMap, handler);
 
                             }
 

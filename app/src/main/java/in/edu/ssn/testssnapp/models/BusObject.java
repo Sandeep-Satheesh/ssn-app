@@ -87,7 +87,7 @@ public class BusObject {
         return brng;
     }
 
-    public void moveVehicle(final LatLng finalPosition, GoogleMap googleMap, Handler handler) {
+    public void moveMarker(final LatLng finalPosition, GoogleMap googleMap, Handler handler) {
         if (busMarker == null || googleMap == null) return;
         if (position == null) {
             handler.post(() -> googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(finalPosition, 18f)));
@@ -98,10 +98,16 @@ public class BusObject {
         final long start = SystemClock.uptimeMillis();
         final Interpolator interpolator = new AccelerateDecelerateInterpolator();
         final float durationInMs = 500;
-        handler.post(() -> {
-            if (position != null)
-                busMarker.setRotation(bearingBetweenLocations(position, finalPosition));
-        });
+        boolean contains = googleMap.getProjection()
+                .getVisibleRegion()
+                .latLngBounds
+                .contains(finalPosition);
+        if (!contains) {
+            // MOVE CAMERA
+            googleMap.animateCamera(CameraUpdateFactory.newLatLng(finalPosition));
+        }
+        if (position != null)
+            busMarker.setRotation(Math.round(bearingBetweenLocations(position, finalPosition)));
         handler.post(new Runnable() {
             long elapsed;
             float t;
@@ -119,15 +125,6 @@ public class BusObject {
                         startPosition.longitude * (1 - t) + (finalPosition.longitude) * t);
                 busMarker.setPosition(currentPosition);
                 position = currentPosition;
-                boolean contains = googleMap.getProjection()
-                        .getVisibleRegion()
-                        .latLngBounds
-                        .contains(currentPosition);
-                if (!contains) {
-                    // MOVE CAMERA
-                    googleMap.animateCamera(CameraUpdateFactory.newLatLng(currentPosition));
-                }
-
                 // Repeat till progress is complete
                 if (t < 1) {
                     handler.postDelayed(this, 16);

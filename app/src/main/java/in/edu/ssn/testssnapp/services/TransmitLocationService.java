@@ -147,7 +147,7 @@ public class TransmitLocationService extends Service implements LocationListener
                 }
                 try {
                     if (locationManager != null) {
-                        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 30, this);
+                        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 10, this);
                         Location l = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
                         if (l != null) {
                             checkLocationValidity(l);
