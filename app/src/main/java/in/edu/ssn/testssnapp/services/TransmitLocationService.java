@@ -147,7 +147,7 @@ public class TransmitLocationService extends Service implements LocationListener
                 }
                 try {
                     if (locationManager != null) {
-                        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 10, this);
+                        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 30, this);
                         Location l = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
                         if (l != null) {
                             checkLocationValidity(l);
@@ -228,6 +228,7 @@ public class TransmitLocationService extends Service implements LocationListener
     @Override
     public void onLocationChanged(Location location) {
         //changeProviderIfRequired(locationManager.getBestProvider(criteria, true));
+
         if (CommonUtils.alerter(this) || suspendFlag) return;
         checkLocationValidity(location);
         busLocDBRef.child("currentSharerID").setValue(userID);

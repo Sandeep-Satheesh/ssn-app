@@ -74,8 +74,8 @@ public class BusRouteAdapter extends RecyclerView.Adapter<BusRouteAdapter.BusRou
                 }
                 if (CommonUtils.alerter(context)) {
                     Toast.makeText(context, "You're offline! Please connect to the internet to continue!", Toast.LENGTH_SHORT).show();
-
                 } else if (isDayScholar) {
+                    v.setEnabled(false);
                     for (BusRouteViewHolder i : holders)
                         i.busRouteCV.setEnabled(false);
                     new CommonUtils.getInternetTime(context, (trueTime) -> {

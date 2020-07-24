@@ -3,8 +3,11 @@ package in.edu.ssn.testssnapp.models;
 import android.animation.ValueAnimator;
 import android.os.Build;
 import android.os.Handler;
+import android.os.SystemClock;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
+import android.view.animation.Interpolator;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -63,6 +66,78 @@ public class BusObject {
         this.infoUpdatedListener = locationUpdatedListener;
     }
 
+    private float bearingBetweenLocations(LatLng latLng1, LatLng latLng2) {
+
+        double PI = 3.14159;
+        double lat1 = latLng1.latitude * PI / 180;
+        double long1 = latLng1.longitude * PI / 180;
+        double lat2 = latLng2.latitude * PI / 180;
+        double long2 = latLng2.longitude * PI / 180;
+
+        double dLon = (long2 - long1);
+
+        double y = Math.sin(dLon) * Math.cos(lat2);
+        double x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1)
+                * Math.cos(lat2) * Math.cos(dLon);
+
+        float brng = (float) Math.atan2(y, x);
+        brng = (float) Math.toDegrees(brng);
+        brng = (brng + 360) % 360;
+
+        return brng;
+    }
+
+    public void moveVehicle(final LatLng finalPosition, GoogleMap googleMap, Handler handler) {
+        if (busMarker == null || googleMap == null) return;
+        if (position == null) {
+            handler.post(() -> googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(finalPosition, 18f)));
+        }
+
+        final LatLng startPosition = busMarker.getPosition();
+
+        final long start = SystemClock.uptimeMillis();
+        final Interpolator interpolator = new AccelerateDecelerateInterpolator();
+        final float durationInMs = 500;
+        handler.post(() -> {
+            if (position != null)
+                busMarker.setRotation(bearingBetweenLocations(position, finalPosition));
+        });
+        handler.post(new Runnable() {
+            long elapsed;
+            float t;
+            float v;
+
+            @Override
+            public void run() {
+                // Calculate progress using interpolator
+                elapsed = SystemClock.uptimeMillis() - start;
+                t = elapsed / durationInMs;
+                v = interpolator.getInterpolation(t);
+
+                LatLng currentPosition = new LatLng(
+                        startPosition.latitude * (1 - t) + (finalPosition.latitude) * t,
+                        startPosition.longitude * (1 - t) + (finalPosition.longitude) * t);
+                busMarker.setPosition(currentPosition);
+                position = currentPosition;
+                boolean contains = googleMap.getProjection()
+                        .getVisibleRegion()
+                        .latLngBounds
+                        .contains(currentPosition);
+                if (!contains) {
+                    // MOVE CAMERA
+                    googleMap.animateCamera(CameraUpdateFactory.newLatLng(currentPosition));
+                }
+
+                // Repeat till progress is complete
+                if (t < 1) {
+                    handler.postDelayed(this, 16);
+                } else {
+                    busMarker.setVisible(true);
+                }
+            }
+        });
+    }
+
     public Marker getBusMarker() {
         return busMarker;
     }
@@ -100,20 +175,6 @@ public class BusObject {
         isMarkerVisible = true;
     }
 
-    public void setLocation(LatLng location, Handler handler, GoogleMap googleMap) {
-        if (position == null && googleMap != null) {
-            handler.post(() -> googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 18f)));
-        }
-        if (position != null && position.latitude == location.latitude && position.longitude == location.longitude)
-            return;
-        position = location;
-        if (busMarker != null) {
-            busMarker.remove();
-            busMarker.setPosition(location);
-        }
-        infoUpdatedListener.onLocationChanged(location);
-    }
-
     public void setBusMarker(Marker busLocation) {
         this.busMarker = busLocation;
     }
@@ -126,26 +187,6 @@ public class BusObject {
         if (currentVolunteerId.equals(this.currentVolunteerId)) return;
         this.currentVolunteerId = currentVolunteerId;
         infoUpdatedListener.onSharerIdChanged(currentVolunteerId);
-    }
-
-    public void moveMarker(GoogleMap googleMap, Handler handler, LatLng location) {
-        if (busMarker == null || googleMap == null) return;
-        if (position == null) {
-            handler.post(() -> googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 18f)));
-        }
-        if (position != null && position.latitude == location.latitude && position.longitude == location.longitude)
-            return;
-        position = location;
-        boolean contains = googleMap.getProjection()
-                .getVisibleRegion()
-                .latLngBounds
-                .contains(location);
-        if (!contains) {
-            // MOVE CAMERA
-            googleMap.animateCamera(CameraUpdateFactory.newLatLng(location));
-        }
-        busMarker.setPosition(location);
-        if (infoUpdatedListener != null) infoUpdatedListener.onLocationChanged(location);
     }
 
     public interface OnInfoUpdatedListener {

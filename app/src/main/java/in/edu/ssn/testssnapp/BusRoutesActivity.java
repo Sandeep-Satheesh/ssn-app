@@ -261,7 +261,7 @@ public class BusRoutesActivity extends BaseActivity implements TextWatcher {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        adapter = new BusRouteAdapter(getApplicationContext(), recyclerList);
+                        adapter = new BusRouteAdapter(BusRoutesActivity.this, recyclerList);
                         busRoutesRV.setAdapter(adapter);
                     }
                 });

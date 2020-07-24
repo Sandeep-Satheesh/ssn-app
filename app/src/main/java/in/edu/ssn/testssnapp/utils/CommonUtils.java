@@ -3,6 +3,7 @@ package in.edu.ssn.testssnapp.utils;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -197,12 +198,7 @@ public class CommonUtils {
         alertDialog.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
         alertDialog.show();
 
-        closeIV.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                alertDialog.dismiss();
-            }
-        });
+        closeIV.setOnClickListener(v -> alertDialog.dismiss());
     }
 
     public static int getDayOfWeek(String day) {
@@ -244,14 +240,17 @@ public class CommonUtils {
     }
 
     private static String findSSIDForWifiInfo(WifiManager manager, WifiInfo wifiInfo) {
-        List<WifiConfiguration> listOfConfigurations = manager.getConfiguredNetworks();
-        for (int index = 0; index < listOfConfigurations.size(); index++) {
-            WifiConfiguration configuration = listOfConfigurations.get(index);
-            if (configuration.networkId == wifiInfo.getNetworkId()) {
-                return configuration.SSID;
+        try {
+            List<WifiConfiguration> listOfConfigurations = manager.getConfiguredNetworks();
+            for (int index = 0; index < listOfConfigurations.size(); index++) {
+                WifiConfiguration configuration = listOfConfigurations.get(index);
+                if (configuration.networkId == wifiInfo.getNetworkId()) {
+                    return configuration.SSID;
+                }
             }
+        } catch (SecurityException e) {
+            e.printStackTrace();
         }
-
         return null;
     }
 
@@ -637,8 +636,12 @@ public class CommonUtils {
         OnTimeFetchedListener listener;
         Context c;
         long internetTime = 0;
+        ProgressDialog pd;
 
         public getInternetTime(Context c, OnTimeFetchedListener listener) {
+            pd = SharedPref.getBoolean(c, "dark_mode") ? new ProgressDialog(c, R.style.DarkThemeDialog) : new ProgressDialog(c);
+            pd.setMessage("Attempting to fetch internet time...");
+            pd.setCancelable(false);
             this.c = c;
             this.listener = listener;
         }
@@ -646,6 +649,7 @@ public class CommonUtils {
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
+            pd.show();
         }
 
         @SafeVarargs
@@ -654,24 +658,29 @@ public class CommonUtils {
             try {
                 NTPUDPClient timeClient = new NTPUDPClient();
                 timeClient.setDefaultTimeout(3000);
-                InetAddress inetAddress = null;
-                boolean is_locale_date = false;
+                InetAddress inetAddress;
                 try {
                     inetAddress = InetAddress.getByName("time.google.com");
                     TimeInfo timeInfo = null;
                     timeInfo = timeClient.getTime(inetAddress);
-                    long serverTime = timeInfo.getMessage().getTransmitTimeStamp().getTime();
-                    internetTime = serverTime;
+                    internetTime = timeInfo.getMessage().getTransmitTimeStamp().getTime();
 
                 } catch (UnknownHostException e) {
                     e.printStackTrace();
+                    internetTime = 0;
                     Log.e("UnknownHostException: ", e.getMessage());
+                    return null;
                 } catch (IOException e) {
                     e.printStackTrace();
+                    internetTime = 0;
                     Log.e("IOException: ", e.getMessage());
+                    return null;
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+                internetTime = 0;
+                Log.e("Exception: ", e.getMessage());
+                return null;
             }
             return null;
         }
@@ -679,7 +688,10 @@ public class CommonUtils {
         @Override
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
+            if (internetTime == 0)
+                pd.setMessage("There was a problem fetching the current time! Stopping...");
             if (listener != null) listener.onTimeFetched(internetTime);
+            pd.cancel();
         }
 
         public interface OnTimeFetchedListener {
