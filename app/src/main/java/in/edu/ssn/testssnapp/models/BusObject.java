@@ -97,7 +97,7 @@ public class BusObject {
 
         final long start = SystemClock.uptimeMillis();
         final Interpolator interpolator = new AccelerateDecelerateInterpolator();
-        final float durationInMs = 500;
+        final float durationInMs = 1000;
         boolean contains = googleMap.getProjection()
                 .getVisibleRegion()
                 .latLngBounds
@@ -106,8 +106,11 @@ public class BusObject {
             // MOVE CAMERA
             googleMap.animateCamera(CameraUpdateFactory.newLatLng(finalPosition));
         }
-        if (position != null)
-            busMarker.setRotation(Math.round(bearingBetweenLocations(position, finalPosition)));
+        if (position != null) {
+            float b = bearingBetweenLocations(position, finalPosition);
+            if (Math.abs(busMarker.getRotation() - b) >= 7)
+                busMarker.setRotation(b);
+        }
         handler.post(new Runnable() {
             long elapsed;
             float t;

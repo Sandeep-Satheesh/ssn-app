@@ -47,6 +47,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.Lifecycle;
+import androidx.vectordrawable.graphics.drawable.VectorDrawableCompat;
 
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
@@ -117,7 +118,7 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
     FloatingActionButton fabRecentre;
     ConnectivityManager connectivityManager;
     Timer timer;
-    volatile long startTime = System.currentTimeMillis();
+    volatile long startTime = 0;
     Handler handler = new Handler();
 
     @Override
@@ -1427,7 +1428,10 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
     }
 
     private BitmapDescriptor getBitmapDescriptor(int id) {
-        Drawable vectorDrawable = getResources().getDrawable(id);
+        Drawable vectorDrawable;
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.LOLLIPOP) {
+            vectorDrawable = VectorDrawableCompat.create(this.getResources(), id, null);
+        } else vectorDrawable = this.getResources().getDrawable(id, getTheme());
         int h = vectorDrawable.getIntrinsicHeight();
         int w = vectorDrawable.getIntrinsicWidth();
         vectorDrawable.setBounds(0, 0, w * 2, h * 2);
@@ -1627,7 +1631,7 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
                                 LatLng currentlatLongs = new LatLng(sep == 1 ? 0 : Double.parseDouble(latLongString.substring(0, sep)), sep == 1 ? 0 : Double.parseDouble(latLongString.substring(sep + 1)));
                                 if (currentBusObject != null)
                                     currentBusObject.moveMarker(currentlatLongs, googleMap, handler);
-
+                                startTime = System.currentTimeMillis();
                             }
 
                             @Override
