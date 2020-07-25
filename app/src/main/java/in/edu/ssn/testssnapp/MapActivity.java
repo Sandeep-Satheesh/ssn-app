@@ -971,6 +971,10 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
 
     @Override
     public void onMapReady(final GoogleMap googleMap) {
+        googleMap.getUiSettings().setTiltGesturesEnabled(false);
+        googleMap.getUiSettings().setMapToolbarEnabled(false);
+        googleMap.getUiSettings().setMyLocationButtonEnabled(false);
+
         this.googleMap = googleMap;
         busTrackingMap.onStart();
         initUI();
@@ -1278,14 +1282,7 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
 
             @Override
             public void onLocationChanged(LatLng location) {
-                //sync with currentbusobject.
-                /*if (currentBusObject != null)
-                    if (currentBusObject.isSharerOnline()) {
-                        if (isBusOnlineIV.getTag().toString().equals("offline")) {
-                            isBusOnlineIV.setTag("online");
-                            animateOnlineStatusChange(true);
-                        }
-                    } else currentBusObject.setUserOnline(true);*/
+                startTime = System.currentTimeMillis();
             }
 
             @Override
@@ -1342,7 +1339,6 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
                         CountDownTimer countDownTimer = new CountDownTimer(waittime, 500) {
                             @Override
                             public void onTick(long millisUntilFinished) {
-
                             }
 
                             @Override
