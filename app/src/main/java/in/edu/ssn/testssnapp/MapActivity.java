@@ -124,8 +124,6 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        /*if (!CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class))
-            SharedPref.putBoolean(getApplicationContext(), "service_suspended", false);*/
 
         if (CommonUtils.alerter(this)) {
             if (!CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class)) {
@@ -1597,6 +1595,12 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
             pd.dismiss();
         if (!CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class)) {
             unregisterNetworkCallbacks();
+            try {
+                timer.cancel();
+                timer.purge();
+
+            } catch (Exception e) {
+            }
         }
         Bungee.slideRight(this);
         finish();
