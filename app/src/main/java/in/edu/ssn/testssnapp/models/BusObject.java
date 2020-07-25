@@ -8,6 +8,7 @@ import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
+import android.view.animation.LinearInterpolator;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -23,7 +24,7 @@ public class BusObject {
     volatile boolean isSharerOnline;
     public volatile boolean isMarkerVisible;
     volatile int speed;
-
+    volatile float accumulatedRotation = 0f;
 
     public BusObject() {
         isSharerOnline = false;
@@ -87,14 +88,34 @@ public class BusObject {
         return brng;
     }
 
-    public void moveMarker(final LatLng finalPosition, GoogleMap googleMap, Handler handler) {
+    public void rotateMarker(final Marker marker, final float toRotation, Handler handler) {
+        final long start = SystemClock.uptimeMillis();
+        final float startRotation = marker.getRotation();
+        final long duration = 500;
+        float deltaRotation = Math.abs(toRotation - startRotation) % 360;
+        final float rotation = (deltaRotation > 180 ? 360 - deltaRotation : deltaRotation) *
+                ((toRotation - startRotation >= 0 && toRotation - startRotation <= 180) || (toRotation - startRotation <= -180 && toRotation - startRotation >= -360) ? 1 : -1);
+
+        final LinearInterpolator interpolator = new LinearInterpolator();
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                long elapsed = SystemClock.uptimeMillis() - start;
+                float t = interpolator.getInterpolation((float) elapsed / duration);
+                marker.setRotation((startRotation + t * rotation) % 360);
+                if (t < 1.0) {
+                    handler.postDelayed(this, 5);
+                }
+            }
+        });
+    }
+
+    public void animateMarker(final LatLng finalPosition, GoogleMap googleMap, Handler handler) {
         if (busMarker == null || googleMap == null) return;
         if (position == null) {
             handler.post(() -> googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(finalPosition, 18f)));
         }
-
-        final LatLng startPosition = busMarker.getPosition();
-
+        final LatLng startPosition = position;
         final long start = SystemClock.uptimeMillis();
         final Interpolator interpolator = new AccelerateDecelerateInterpolator();
         final float durationInMs = 1000;
@@ -104,38 +125,47 @@ public class BusObject {
                 .contains(finalPosition);
         if (!contains) {
             // MOVE CAMERA
-            googleMap.animateCamera(CameraUpdateFactory.newLatLng(finalPosition));
+            handler.post(() -> {
+                googleMap.animateCamera(CameraUpdateFactory.newLatLng(finalPosition));
+                position = finalPosition;
+            });
         }
         if (position != null) {
             float b = bearingBetweenLocations(position, finalPosition);
-            if (Math.abs(busMarker.getRotation() - b) >= 7)
-                busMarker.setRotation(b);
-        }
-        handler.post(new Runnable() {
-            long elapsed;
-            float t;
-            float v;
+            rotateMarker(busMarker, b, handler);
+            /*accumulatedRotation = accumulatedRotation + b;
+            if (Math.abs(accumulatedRotation) >= 5) {
+                if (b < 5) rotateMarker(busMarker, accumulatedRotation, handler);
+                else rotateMarker(busMarker, b, handler);
+                accumulatedRotation = 0;
+            }*/
+            handler.post(new Runnable() {
+                long elapsed;
+                float t;
+                float v;
 
-            @Override
-            public void run() {
-                // Calculate progress using interpolator
-                elapsed = SystemClock.uptimeMillis() - start;
-                t = elapsed / durationInMs;
-                v = interpolator.getInterpolation(t);
+                @Override
+                public void run() {
+                    // Calculate progress using interpolator
+                    elapsed = SystemClock.uptimeMillis() - start;
+                    t = elapsed / durationInMs;
+                    v = interpolator.getInterpolation(t);
 
-                LatLng currentPosition = new LatLng(
-                        startPosition.latitude * (1 - t) + (finalPosition.latitude) * t,
-                        startPosition.longitude * (1 - t) + (finalPosition.longitude) * t);
-                busMarker.setPosition(currentPosition);
-                position = currentPosition;
-                // Repeat till progress is complete
-                if (t < 1) {
-                    handler.postDelayed(this, 16);
-                } else {
-                    busMarker.setVisible(true);
+                    LatLng currentPosition = new LatLng(
+                            startPosition.latitude * (1 - t) + (finalPosition.latitude) * t,
+                            startPosition.longitude * (1 - t) + (finalPosition.longitude) * t);
+
+                    busMarker.setPosition(currentPosition);
+                    position = finalPosition;
+                    // Repeat till progress is complete
+                    if (t < 1) {
+                        handler.postDelayed(this, 5);
+                    } else {
+                        busMarker.setVisible(true);
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 
     public Marker getBusMarker() {

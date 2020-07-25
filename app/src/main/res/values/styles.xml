@@ -9,9 +9,9 @@
     </style>
 
     <style name="DarkThemeDialog" parent="Theme.AppCompat.Dialog.Alert">
-        <item name="android:background">@color/darkColor</item>
+        <item name="android:background">@color/darkColor1</item>
         <item name="textColorAlertDialogListItem">@color/white</item>
-        <item name="buttonBarButtonStyle">@color/darkColor</item>
+        <item name="buttonBarButtonStyle">@color/darkColor1</item>
         <item name="textColorSearchUrl">@color/white</item>
         <item name="android:textColor">@color/white</item>
     </style>

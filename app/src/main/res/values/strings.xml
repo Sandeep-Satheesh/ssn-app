@@ -37,7 +37,7 @@
     <string name="fb_page_detail">To know more about app updates, visit</string>
     <string name="app_fb_page"><u>facebook.com/ssnceapp</u></string>
     <string name="app_insta_page"><u>instagram.com/ssnce_app</u></string>
-    <string name="no_volunteer_available">Sorry! There aren\'t any volunteers sharing location for this route right now! Please try again later!</string>
+    <string name="no_volunteer_available">Looks like there aren\'t any volunteers sharing their location for this route right now! Please try again later!</string>
     <string name="sharer_online_status">Sharer Online Status</string>
     <string name="would_you_like_to_volunteer">No one is volunteering for your bus currently! Press the \'Start Volunteering\' button to go!</string>
     <string name="improper_shutdown">Looks like the app didn\'t shut down correctly last time! Restarting screen…</string>
