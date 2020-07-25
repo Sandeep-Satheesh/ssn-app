@@ -991,6 +991,7 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
     public void onMapReady(final GoogleMap googleMap) {
         googleMap.getUiSettings().setMapToolbarEnabled(false);
         googleMap.getUiSettings().setMyLocationButtonEnabled(false);
+        googleMap.getUiSettings().setTiltGesturesEnabled(false);
 
         if (currentBusObject == null)
             googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(SSNCEPoint, 18f));
