@@ -49,4 +49,6 @@
     <string name="fetching_location">Attempting to fetch your location…</string>
     <string name="location_sharing_forceclose_warning">Newer versions of Android tend to force-close background services when you clear your memory using the task manager. This is also true for any battery saver apps installed on your phone.\nAs you are the current volunteer, your location is being sent to the servers using a background service, and this process can be terminated by Android or other battery saver apps unexpectedly.\nWhile you can still swipe away the app from your task manager after using it, you are requested to not clear your memory, while you are volunteering.\nThank you for your co-operation!</string>
     <string name="background_service_restriction_warning">Background service restriction warning</string>
+    <string name="busvolunteer_concurrency_occurred">Concurrency occurred! Attempting to resolve the issue, please wait...</string>
+    <string name="volunteerconcurrency_resolved">Concurrency resolved!</string>
 </resources>

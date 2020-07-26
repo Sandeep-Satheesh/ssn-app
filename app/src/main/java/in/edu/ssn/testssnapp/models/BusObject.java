@@ -4,10 +4,8 @@ import android.animation.ValueAnimator;
 import android.os.Build;
 import android.os.Handler;
 import android.os.SystemClock;
-import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
-import android.view.animation.Interpolator;
 import android.view.animation.LinearInterpolator;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -24,7 +22,6 @@ public class BusObject {
     volatile boolean isSharerOnline;
     public volatile boolean isMarkerVisible;
     volatile int speed;
-    volatile float accumulatedRotation = 0f;
 
     public BusObject() {
         isSharerOnline = false;
@@ -82,7 +79,7 @@ public class BusObject {
                 * Math.cos(lat2) * Math.cos(dLon);
 
         float brng = (float) Math.atan2(y, x);
-        brng = (float) Math.toDegrees(brng);
+        brng = (int) Math.toDegrees(brng);
         brng = (brng + 360) % 360;
 
         return brng;
@@ -104,7 +101,7 @@ public class BusObject {
                 float t = interpolator.getInterpolation((float) elapsed / duration);
                 marker.setRotation((startRotation + t * rotation) % 360);
                 if (t < 1.0) {
-                    handler.postDelayed(this, 5);
+                    handler.postDelayed(this, 10);
                 }
             }
         });
@@ -117,8 +114,7 @@ public class BusObject {
         }
         final LatLng startPosition = position;
         final long start = SystemClock.uptimeMillis();
-        final Interpolator interpolator = new AccelerateDecelerateInterpolator();
-        final float durationInMs = 1000;
+        final float durationInMs = 1200;
         boolean contains = googleMap.getProjection()
                 .getVisibleRegion()
                 .latLngBounds
@@ -127,45 +123,37 @@ public class BusObject {
             // MOVE CAMERA
             handler.post(() -> {
                 googleMap.animateCamera(CameraUpdateFactory.newLatLng(finalPosition));
-                position = finalPosition;
             });
         }
         if (position != null) {
             float b = bearingBetweenLocations(position, finalPosition);
             rotateMarker(busMarker, b, handler);
-            /*accumulatedRotation = accumulatedRotation + b;
-            if (Math.abs(accumulatedRotation) >= 5) {
-                if (b < 5) rotateMarker(busMarker, accumulatedRotation, handler);
-                else rotateMarker(busMarker, b, handler);
-                accumulatedRotation = 0;
-            }*/
             handler.post(new Runnable() {
                 long elapsed;
                 float t;
-                float v;
 
                 @Override
                 public void run() {
                     // Calculate progress using interpolator
                     elapsed = SystemClock.uptimeMillis() - start;
-                    t = elapsed / durationInMs;
-                    v = interpolator.getInterpolation(t);
+                    t = (float) elapsed / durationInMs;
+                    //v = interpolator.getInterpolation(t);
 
                     LatLng currentPosition = new LatLng(
                             startPosition.latitude * (1 - t) + (finalPosition.latitude) * t,
                             startPosition.longitude * (1 - t) + (finalPosition.longitude) * t);
 
                     busMarker.setPosition(currentPosition);
-                    position = finalPosition;
                     // Repeat till progress is complete
                     if (t < 1) {
-                        handler.postDelayed(this, 5);
+                        handler.postDelayed(this, 10);
                     } else {
                         busMarker.setVisible(true);
                     }
                 }
             });
         }
+        position = finalPosition;
     }
 
     public Marker getBusMarker() {
