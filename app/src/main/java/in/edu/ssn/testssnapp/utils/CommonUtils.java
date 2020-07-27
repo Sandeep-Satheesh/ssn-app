@@ -3,12 +3,18 @@ package in.edu.ssn.testssnapp.utils;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.AlertDialog;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
+import android.media.AudioAttributes;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -16,7 +22,8 @@ import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
-import android.util.Log;
+import android.os.Build;
+import android.provider.Settings;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
@@ -26,19 +33,17 @@ import android.widget.TextView;
 
 import androidx.browser.customtabs.CustomTabsIntent;
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.content.res.ResourcesCompat;
 
 import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.firebase.Timestamp;
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.google.firebase.firestore.DocumentSnapshot;
 
-import org.apache.commons.net.ntp.NTPUDPClient;
-import org.apache.commons.net.ntp.TimeInfo;
 import org.jsoup.Jsoup;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -264,7 +269,11 @@ public class CommonUtils {
     }
 
     public static String getTime(Date time) {
-        long t = System.currentTimeMillis() - time.getTime();
+        return getTime(System.currentTimeMillis(), time.getTime());
+    }
+
+    public static String getTime(long time1, long time2) {
+        long t = Math.abs(time1 - time2);
         if (t < 60000)
             return t / 1000 + "s ago";
         else if (t < 3600000)
@@ -280,6 +289,51 @@ public class CommonUtils {
         else
             return t / 31536000000L + "y ago";
     }
+
+    public static void showNotification(int id, String channelIdString, String title, String message, Context context, Intent intent) {
+        PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel notificationChannel = new NotificationChannel(channelIdString, "Bus Tracking Status", NotificationManager.IMPORTANCE_HIGH);
+            notificationChannel.enableLights(true);
+            notificationChannel.enableVibration(true);
+            notificationChannel.setLightColor(Color.BLUE);
+            notificationChannel.setSound(Settings.System.DEFAULT_NOTIFICATION_URI,
+                    new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).build());
+            notificationChannel.setDescription("Bus Tracking Volunteer Status alerts.");
+            notificationManager.createNotificationChannel(notificationChannel);
+
+            NotificationCompat.Builder nbuilder = new NotificationCompat.Builder(context, channelIdString)
+                    .setContentTitle(title)
+                    .setSmallIcon(R.drawable.ssn_logo)
+                    .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
+                    .setChannelId(channelIdString)
+                    .setAutoCancel(true)
+                    .setLights(Color.BLUE, 500, 500)
+                    .setColorized(true)
+                    .setColor(ContextCompat.getColor(context, R.color.colorAccent))
+                    .setContentIntent(pendingIntent);
+            Notification n = nbuilder.build();
+            n.flags = n.flags | Notification.FLAG_ONLY_ALERT_ONCE;
+            notificationManager.notify(id, n);
+
+        } else {
+            NotificationCompat.Builder nbuilder = new NotificationCompat.Builder(context, channelIdString)
+                    .setContentTitle(title)
+                    .setSmallIcon(R.drawable.ssn_logo)
+                    .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
+                    .setAutoCancel(true)
+                    .setPriority(Notification.PRIORITY_HIGH)
+                    .setSound(Settings.System.DEFAULT_NOTIFICATION_URI)
+                    .setContentIntent(pendingIntent);
+
+            Notification n = nbuilder.build();
+            n.flags = n.flags | Notification.FLAG_ONLY_ALERT_ONCE;
+            notificationManager.notify(id, n);
+        }
+    }
+
 
     public static String getCollectionName(int type) {
         switch (type) {
@@ -656,31 +710,9 @@ public class CommonUtils {
         @Override
         protected final Void doInBackground(Void... voids) {
             try {
-                NTPUDPClient timeClient = new NTPUDPClient();
-                timeClient.setDefaultTimeout(3000);
-                InetAddress inetAddress;
-                try {
-                    inetAddress = InetAddress.getByName("time.google.com");
-                    TimeInfo timeInfo = null;
-                    timeInfo = timeClient.getTime(inetAddress);
-                    internetTime = timeInfo.getMessage().getTransmitTimeStamp().getTime();
-
-                } catch (UnknownHostException e) {
-                    e.printStackTrace();
-                    internetTime = 0;
-                    Log.e("UnknownHostException: ", e.getMessage());
-                    return null;
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    internetTime = 0;
-                    Log.e("IOException: ", e.getMessage());
-                    return null;
-                }
+                internetTime = Timestamp.now().toDate().getTime();
             } catch (Exception e) {
                 e.printStackTrace();
-                internetTime = 0;
-                Log.e("Exception: ", e.getMessage());
-                return null;
             }
             return null;
         }

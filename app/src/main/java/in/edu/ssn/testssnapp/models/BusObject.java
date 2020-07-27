@@ -16,7 +16,7 @@ import com.google.android.gms.maps.model.Marker;
 public class BusObject {
     volatile String currentVolunteerId;
 
-    volatile LatLng position;
+    public volatile LatLng position;
     volatile Marker busMarker;
     volatile OnInfoUpdatedListener infoUpdatedListener;
     volatile boolean isSharerOnline;
@@ -48,23 +48,7 @@ public class BusObject {
         return speed;
     }
 
-    public void setUserOnline(boolean sharerOnline) {
-//        if (sharerOnline == isSharerOnline) return;
-        isSharerOnline = sharerOnline;
-        infoUpdatedListener.onOnlineStatusChanged(sharerOnline);
-    }
-
-    public void setSpeed(int speed) {
-        this.speed = speed;
-        if (infoUpdatedListener != null)
-            infoUpdatedListener.onSpeedChanged(speed);
-    }
-
-    public void setInfoUpdatedListener(OnInfoUpdatedListener locationUpdatedListener) {
-        this.infoUpdatedListener = locationUpdatedListener;
-    }
-
-    private float bearingBetweenLocations(LatLng latLng1, LatLng latLng2) {
+    private static float bearingBetweenLocations(LatLng latLng1, LatLng latLng2) {
 
         double PI = 3.14159;
         double lat1 = latLng1.latitude * PI / 180;
@@ -83,6 +67,23 @@ public class BusObject {
         brng = (brng + 360) % 360;
 
         return brng;
+    }
+
+    public void setSpeed(int speed) {
+        this.speed = speed;
+        if (infoUpdatedListener != null)
+            infoUpdatedListener.onSpeedChanged(speed);
+    }
+
+    public void setInfoUpdatedListener(OnInfoUpdatedListener locationUpdatedListener) {
+        this.infoUpdatedListener = locationUpdatedListener;
+    }
+
+    public void setUserOnline(boolean sharerOnline) {
+//        if (sharerOnline == isSharerOnline) return;
+        position = null;
+        isSharerOnline = sharerOnline;
+        infoUpdatedListener.onOnlineStatusChanged(sharerOnline);
     }
 
     public void rotateMarker(final Marker marker, final float toRotation, Handler handler) {
@@ -105,55 +106,6 @@ public class BusObject {
                 }
             }
         });
-    }
-
-    public void animateMarker(final LatLng finalPosition, GoogleMap googleMap, Handler handler) {
-        if (busMarker == null || googleMap == null) return;
-        if (position == null) {
-            handler.post(() -> googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(finalPosition, 18f)));
-        }
-        final LatLng startPosition = position;
-        final long start = SystemClock.uptimeMillis();
-        final float durationInMs = 1200;
-        boolean contains = googleMap.getProjection()
-                .getVisibleRegion()
-                .latLngBounds
-                .contains(finalPosition);
-        if (!contains) {
-            // MOVE CAMERA
-            handler.post(() -> {
-                googleMap.animateCamera(CameraUpdateFactory.newLatLng(finalPosition));
-            });
-        }
-        if (position != null) {
-            float b = bearingBetweenLocations(position, finalPosition);
-            rotateMarker(busMarker, b, handler);
-            handler.post(new Runnable() {
-                long elapsed;
-                float t;
-
-                @Override
-                public void run() {
-                    // Calculate progress using interpolator
-                    elapsed = SystemClock.uptimeMillis() - start;
-                    t = (float) elapsed / durationInMs;
-                    //v = interpolator.getInterpolation(t);
-
-                    LatLng currentPosition = new LatLng(
-                            startPosition.latitude * (1 - t) + (finalPosition.latitude) * t,
-                            startPosition.longitude * (1 - t) + (finalPosition.longitude) * t);
-
-                    busMarker.setPosition(currentPosition);
-                    // Repeat till progress is complete
-                    if (t < 1) {
-                        handler.postDelayed(this, 10);
-                    } else {
-                        busMarker.setVisible(true);
-                    }
-                }
-            });
-        }
-        position = finalPosition;
     }
 
     public Marker getBusMarker() {
@@ -205,6 +157,56 @@ public class BusObject {
         if (currentVolunteerId.equals(this.currentVolunteerId)) return;
         this.currentVolunteerId = currentVolunteerId;
         infoUpdatedListener.onSharerIdChanged(currentVolunteerId);
+    }
+
+    public void animateBusMarker(final LatLng startPosition, final LatLng endPosition, GoogleMap googleMap, Handler handler, int duration) {
+        boolean contains = googleMap.getProjection()
+                .getVisibleRegion()
+                .latLngBounds
+                .contains(endPosition);
+        if (!contains) {
+            // MOVE CAMERA
+            handler.post(() -> googleMap.animateCamera(CameraUpdateFactory.newLatLng(endPosition)));
+        }
+
+        ValueAnimator positionAnimator = ValueAnimator.ofFloat(0, 1), rotationAnimator = ValueAnimator.ofFloat(busMarker.getRotation(), bearingBetweenLocations(startPosition, endPosition));
+        positionAnimator.setDuration(duration);
+        rotationAnimator.setDuration(duration);
+        final LatLngInterpolatorNew latLngInterpolator = new LatLngInterpolatorNew.LinearFixed();
+
+        positionAnimator.setInterpolator(new LinearInterpolator());
+        rotationAnimator.setInterpolator(new LinearInterpolator());
+
+        positionAnimator.addUpdateListener(valueAnimator1 -> {
+
+            float v = valueAnimator1.getAnimatedFraction();
+
+            LatLng newPos = latLngInterpolator.interpolate(v, startPosition, endPosition);
+            busMarker.setPosition(newPos);
+            busMarker.setRotation(bearingBetweenLocations(newPos, endPosition));
+        });
+        positionAnimator.start();
+        rotationAnimator.addUpdateListener(animation -> busMarker.setRotation((Float) animation.getAnimatedValue()));
+        rotationAnimator.start();
+    }
+
+    public interface LatLngInterpolatorNew {
+
+        LatLng interpolate(float fraction, LatLng a, LatLng b);
+
+        class LinearFixed implements LatLngInterpolatorNew {
+            @Override
+            public LatLng interpolate(float fraction, LatLng a, LatLng b) {
+                double lat = (b.latitude - a.latitude) * fraction + a.latitude;
+                double lngDelta = b.longitude - a.longitude;
+                // Take the shortest path across the 180th meridian.
+                if (Math.abs(lngDelta) > 180) {
+                    lngDelta -= Math.signum(lngDelta) * 360;
+                }
+                double lng = lngDelta * fraction + a.longitude;
+                return new LatLng(lat, lng);
+            }
+        }
     }
 
     public interface OnInfoUpdatedListener {

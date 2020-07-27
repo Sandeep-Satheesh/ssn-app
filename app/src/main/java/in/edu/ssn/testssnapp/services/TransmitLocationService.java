@@ -28,6 +28,7 @@ import androidx.core.app.NotificationManagerCompat;
 
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ServerValue;
 
 import java.text.SimpleDateFormat;
 import java.util.Timer;
@@ -49,6 +50,7 @@ public class TransmitLocationService extends Service implements LocationListener
     public static final String ACTION_START_FOREGROUND_SERVICE = "ACTION_START_FOREGROUND_SERVICE";
     public static final String ACTION_STOP_FOREGROUND_SERVICE = "ACTION_STOP_FOREGROUND_SERVICE";
     public static final String ACTION_CHANGE_NOTIFICATION_MESSAGE = "ACTION_CHANGE_NOTIFICATION_MESSAGE";
+    TimerTask updateTimeTask, validateTimeTask;
     String routeNo, latLongString, userID;
     int speed;
     SystemTimeChangedReceiver systemTimeChangedReceiver;
@@ -107,12 +109,22 @@ public class TransmitLocationService extends Service implements LocationListener
             return super.onStartCommand(intent, flags, startId);
         }
         timer = new Timer(true);
-        timer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                validateCurrentTime();
-            }
-        }, 0, 1000);
+        if (validateTimeTask == null)
+            validateTimeTask = new TimerTask() {
+                @Override
+                public void run() {
+                    validateCurrentTime();
+                }
+            };
+        if (updateTimeTask == null)
+            updateTimeTask = new TimerTask() {
+                @Override
+                public void run() {
+                    if (busLocDBRef != null)
+                        busLocDBRef.child("timestamp").setValue(ServerValue.TIMESTAMP);
+                }
+            };
+
         switch (intent.getAction()) {
             case ACTION_START_FOREGROUND_SERVICE:
                 locationManager = (LocationManager) this.getSystemService(LOCATION_SERVICE);
@@ -128,6 +140,9 @@ public class TransmitLocationService extends Service implements LocationListener
                 }
 
                 busLocDBRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo);
+
+                timer.scheduleAtFixedRate(validateTimeTask, 0, 1000);
+                timer.scheduleAtFixedRate(updateTimeTask, 0, 60000);
 
                 busLocDBRef.child("sharingLoc").onDisconnect().cancel();
                 busLocDBRef.child("currentSharerID").onDisconnect().cancel();
@@ -147,7 +162,7 @@ public class TransmitLocationService extends Service implements LocationListener
                 }
                 try {
                     if (locationManager != null) {
-                        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 10, this);
+                        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 100, this);
                         Location l = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
                         if (l != null) {
                             checkLocationValidity(l);
@@ -190,6 +205,8 @@ public class TransmitLocationService extends Service implements LocationListener
                 break;
             case ACTION_STOP_FOREGROUND_SERVICE:
                 try {
+                    updateTimeTask.cancel();
+                    validateTimeTask.cancel();
                     timer.cancel();
                     timer.purge();
                 } catch (Exception e) {
@@ -235,6 +252,7 @@ public class TransmitLocationService extends Service implements LocationListener
         busLocDBRef.child("sharingLoc").setValue(true);
         latLongString = location.getLatitude() + "," + location.getLongitude();
         busLocDBRef.child("latLong").setValue(latLongString);
+
         speed = (int) location.getSpeed();
         busLocDBRef.child("speed").setValue(speed);
         busLocDBRef.child("sharingLoc").setValue(true);
@@ -252,7 +270,7 @@ public class TransmitLocationService extends Service implements LocationListener
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            MapActivity.showNotification(4, Constants.BUS_TRACKING_SERVICENOTIFS_CHANNELID, "Location sharing force-stopped.", "You are not allowed to emulate your GPS location!", getApplicationContext(), new Intent());
+            CommonUtils.showNotification(4, Constants.BUS_TRACKING_SERVICENOTIFS_CHANNELID, "Location sharing force-stopped.", "You are not allowed to emulate your GPS location!", getApplicationContext(), new Intent());
             Toast.makeText(getApplicationContext(), "You are not allowed to emulate your GPS location! The service is stopping...", Toast.LENGTH_LONG).show();
 
             //stop service
@@ -279,6 +297,7 @@ public class TransmitLocationService extends Service implements LocationListener
                     checkLocationValidity(location);
                     latLongString = location.getLatitude() + "," + location.getLongitude();
                     busLocDBRef.child("latLong").setValue(latLongString);
+
                     speed = (int) location.getSpeed();
                     busLocDBRef.child("speed").setValue(speed);
                     busLocDBRef.child("sharingLoc").setValue(true);
@@ -310,6 +329,7 @@ public class TransmitLocationService extends Service implements LocationListener
                 checkLocationValidity(location);
                 latLongString = location.getLatitude() + "," + location.getLongitude();
                 busLocDBRef.child("latLong").setValue(latLongString);
+
                 speed = (int) location.getSpeed();
                 busLocDBRef.child("speed").setValue(speed);
                 busLocDBRef.child("currentSharerID").setValue(userID);
@@ -362,7 +382,7 @@ public class TransmitLocationService extends Service implements LocationListener
                 endTime = SharedPref.getString(getApplicationContext(), "bustracking_endtime");
 
         if (!(currentTime.compareTo(endTime) < 0 && currentTime.compareTo(startTime) > 0)) {
-            MapActivity.showNotification(4, Constants.BUS_TRACKING_GENERALNOTIFS_CHANNELID, "Location sharing force-stopped.", "You have exceeded the time limit allowed to use this feature! Thank you for your services.", getApplicationContext(), new Intent());
+            CommonUtils.showNotification(4, Constants.BUS_TRACKING_GENERALNOTIFS_CHANNELID, "Location sharing force-stopped.", "You have exceeded the time limit allowed to use this feature! Thank you for your services.", getApplicationContext(), new Intent());
             try {
                 Toast.makeText(getApplicationContext(), "The current time is: " + currentTime + " hrs. You have exceeded the allowed time limits to use this feature!", Toast.LENGTH_LONG).show();
                 startActivity(new Intent(getApplicationContext(), BusRoutesActivity.class).setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK));

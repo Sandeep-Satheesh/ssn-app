@@ -2,10 +2,6 @@ package in.edu.ssn.testssnapp;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
@@ -13,10 +9,8 @@ import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.location.LocationManager;
-import android.media.AudioAttributes;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
@@ -44,7 +38,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatTextView;
 import androidx.core.app.ActivityCompat;
-import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.Lifecycle;
 import androidx.vectordrawable.graphics.drawable.VectorDrawableCompat;
@@ -78,11 +71,9 @@ import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -107,7 +98,7 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
     MapView busTrackingMap;
     ConnectivityManager.NetworkCallback userNetworkCallback, volunteerNetworkCallback;
     NetworkRequest networkRequest;
-    ValueEventListener routeExistslistener, locationChangedListener, sharerChangedListener, onlineStatusChangedListener, speedChangedListener, forceStopListener;
+    ValueEventListener routeExistslistener, locationChangedListener, sharerChangedListener, onlineStatusChangedListener, speedChangedListener, forceStopListener, updateTimeListener;
     ProgressDialog pd;
     volatile BusObject currentBusObject;
     SecureRandom random;
@@ -118,7 +109,7 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
     FloatingActionButton fabRecentre;
     ConnectivityManager connectivityManager;
     Timer timer;
-    volatile long startTime = 0;
+    volatile long dataUpdatedTimestamp;
     Handler handler = new Handler();
 
     @Override
@@ -147,6 +138,7 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
         //max delay: 6s
         pd = darkModeEnabled ? new ProgressDialog(this, R.style.DarkThemeDialog) : new ProgressDialog(this);
         random = new SecureRandom();
+
         int waittime = random.nextInt(6) * 1000;
         pd.setMessage("Map load wait time: ~" + waittime / 1000 + (waittime == 1000 ? " second." : " seconds."));
         pd.setCancelable(false);
@@ -166,6 +158,7 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
         novolunteerLL = findViewById(R.id.layout_empty);
         novolunteerLL.setVisibility(View.GONE);
         initUI();
+
         if (isVolunteerOfThisBus() && !CommonUtils.isMyServiceRunning(getApplicationContext(), TransmitLocationService.class) && !b) {
             new CountDownTimer(waittime, 1000) {
                 @Override
@@ -258,50 +251,6 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
         }
     }
 
-    public static void showNotification(int id, String channelIdString, String title, String message, Context context, Intent intent) {
-        PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel notificationChannel = new NotificationChannel(channelIdString, "Bus Tracking Status", NotificationManager.IMPORTANCE_HIGH);
-            notificationChannel.enableLights(true);
-            notificationChannel.enableVibration(true);
-            notificationChannel.setLightColor(Color.BLUE);
-            notificationChannel.setSound(Settings.System.DEFAULT_NOTIFICATION_URI,
-                    new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).build());
-            notificationChannel.setDescription("Bus Tracking Volunteer Status alerts.");
-            notificationManager.createNotificationChannel(notificationChannel);
-
-            NotificationCompat.Builder nbuilder = new NotificationCompat.Builder(context, channelIdString)
-                    .setContentTitle(title)
-                    .setSmallIcon(R.drawable.ssn_logo)
-                    .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
-                    .setChannelId(channelIdString)
-                    .setAutoCancel(true)
-                    .setLights(Color.BLUE, 500, 500)
-                    .setColorized(true)
-                    .setColor(ContextCompat.getColor(context, R.color.colorAccent))
-                    .setContentIntent(pendingIntent);
-            Notification n = nbuilder.build();
-            n.flags = n.flags | Notification.FLAG_ONLY_ALERT_ONCE;
-            notificationManager.notify(id, n);
-
-        } else {
-            NotificationCompat.Builder nbuilder = new NotificationCompat.Builder(context, channelIdString)
-                    .setContentTitle(title)
-                    .setSmallIcon(R.drawable.ssn_logo)
-                    .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
-                    .setAutoCancel(true)
-                    .setPriority(Notification.PRIORITY_HIGH)
-                    .setSound(Settings.System.DEFAULT_NOTIFICATION_URI)
-                    .setContentIntent(pendingIntent);
-
-            Notification n = nbuilder.build();
-            n.flags = n.flags | Notification.FLAG_ONLY_ALERT_ONCE;
-            notificationManager.notify(id, n);
-        }
-    }
-
     private void checkRequirementsAndPermissions() {
         String currentTime = new SimpleDateFormat("EEE, MMM dd yyyy, HH:mm").format(System.currentTimeMillis() + SharedPref.getLong(getApplicationContext(), "time_offset")).substring(18),
                 startTime = SharedPref.getString(getApplicationContext(), "bustracking_starttime"),
@@ -335,13 +284,13 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
                                 stopLocationTransmission(false);
                                 currentBusObject.setCurrentVolunteerId(currentSharerID[0]);
                                 switchToUserNetworkCallback();
-                                showNotification(2, Constants.BUS_TRACKING_GENERALNOTIFS_CHANNELID, "The background service has been stopped", "Another volunteer has taken over since your last disconnection! Thank you for your services!", MapActivity.this, new Intent());
+                                CommonUtils.showNotification(2, Constants.BUS_TRACKING_GENERALNOTIFS_CHANNELID, "The background service has been stopped", "Another volunteer has taken over since your last disconnection! Thank you for your services!", MapActivity.this, new Intent());
                                 deactivateInfoChangedListeners(false);
                             }
                         } else {
                             Log.e("RECONNECTION ERROR:", "MESSAGE: " + error.getMessage() + "\nDETAILS: " + error.getDetails());
                             stopLocationTransmission(false);
-                            showNotification(2, Constants.BUS_TRACKING_GENERALNOTIFS_CHANNELID, "The background service has been stopped", "There was an unexpected error reconnecting to the database! The service has been stopped now. Please come back into the app to see if anyone else has started volunteering!", MapActivity.this, new Intent(MapActivity.this, MapActivity.class).putExtra("routeNo", routeNo));
+                            CommonUtils.showNotification(2, Constants.BUS_TRACKING_GENERALNOTIFS_CHANNELID, "The background service has been stopped", "There was an unexpected error reconnecting to the database! The service has been stopped now. Please come back into the app to see if anyone else has started volunteering!", MapActivity.this, new Intent(MapActivity.this, MapActivity.class).putExtra("routeNo", routeNo));
                             deactivateInfoChangedListeners(true);
                             finish();
                             unregisterNetworkCallbacks();
@@ -363,7 +312,7 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
                     && ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
                 if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
                     FCMHelper.clearNotification(2, Constants.BUS_TRACKING_GENERALNOTIFS_CHANNELID, MapActivity.this);
-                    startTime = System.currentTimeMillis();
+
                     startLocationTransmission();
                     deactivateInfoChangedListeners(false);
                 } else {
@@ -381,7 +330,6 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
         } else if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             FCMHelper.clearNotification(2, Constants.BUS_TRACKING_GENERALNOTIFS_CHANNELID, MapActivity.this);
             FCMHelper.clearNotification(2, Constants.BUS_TRACKING_GENERALNOTIFS_CHANNELID, MapActivity.this);
-            startTime = System.currentTimeMillis();
             startLocationTransmission();
             deactivateInfoChangedListeners(false);
         } else {
@@ -476,7 +424,7 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
                             stopLocationTransmission(false);
                             Toast.makeText(getApplicationContext(),
                                     "Your network connection seems to be unstable, or you are restarting sharing too frequently. The service has been stopped. Please check your connection for stability, and then go back into the app to start volunteering!", Toast.LENGTH_LONG).show();
-                            showNotification(3, Constants.BUS_TRACKING_GENERALNOTIFS_CHANNELID, "Auto-stopped volunteering",
+                            CommonUtils.showNotification(3, Constants.BUS_TRACKING_GENERALNOTIFS_CHANNELID, "Auto-stopped volunteering",
                                     "Your network connection seems to be unstable, or you are restarting sharing too frequently. The service has been stopped. Please check your connection for stability, and then go back into the app to start volunteering!", MapActivity.this, new Intent());
                             if (busLocRef == null)
                                 busLocRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo == null ? SharedPref.getString(getApplicationContext(), "routeNo") : routeNo);
@@ -587,7 +535,7 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
                     if (busLocRef == null)
                         busLocRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo == null ? SharedPref.getString(getApplicationContext(), "routeNo") : routeNo);
                     busLocRef.removeValue();
-                    showNotification(3, Constants.BUS_TRACKING_GENERALNOTIFS_CHANNELID, "Auto-stopped volunteering",
+                    CommonUtils.showNotification(3, Constants.BUS_TRACKING_GENERALNOTIFS_CHANNELID, "Auto-stopped volunteering",
                             "You are restarting sharing too frequently, and have been disabled from running the service any further for this session. Please restart the app to start volunteering!", MapActivity.this, new Intent());
                     Toast.makeText(getApplicationContext(),
                             "You are restarting sharing too frequently, and have been disabled from running the service any further for this session. Please restart the app to start volunteering!", Toast.LENGTH_LONG).show();
@@ -621,7 +569,6 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
                             (dialog, which) -> {
                                 stopLocationTransmission();
                                 showSwitchOffGPSDialog();
-                                hideLastUpdatedTV();
 
                             }, (dialog, which) -> {
                                 dialog.dismiss();
@@ -660,7 +607,7 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
                             stopLocationTransmission();
                         unregisterNetworkCallbacks();
                         Toast.makeText(getApplicationContext(), "The master switch was disabled by the admin! The feature will not function until the master switch is reset!", Toast.LENGTH_LONG).show();
-                        showNotification(5, Constants.BUS_TRACKING_GENERALNOTIFS_CHANNELID, "Force-stopped bus tracking", "The master switch was disabled by the admin! The feature will not function until the master switch is reset!", MapActivity.this, new Intent());
+                        CommonUtils.showNotification(5, Constants.BUS_TRACKING_GENERALNOTIFS_CHANNELID, "Force-stopped bus tracking", "The master switch was disabled by the admin! The feature will not function until the master switch is reset!", MapActivity.this, new Intent());
                         if (busLocRef == null)
                             busLocRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child(routeNo == null ? SharedPref.getString(getApplicationContext(), "routeNo") : routeNo);
                         busLocRef.removeValue();
@@ -1028,9 +975,9 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
     }
 
     private void updateTimeElapsedTextViews() {
-        if (!showTimeElapsedTV || !getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED))
+        if (!showTimeElapsedTV || !getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED) || dataUpdatedTimestamp == 0)
             return;
-        String timeElapsed = CommonUtils.getTime(new Date(startTime));
+        String timeElapsed = CommonUtils.getTime(System.currentTimeMillis() + SharedPref.getLong(getApplicationContext(), "time_offset"), dataUpdatedTimestamp);
         String timeElapsedDummy = "last updated " + timeElapsed;
 
         timeElapsed = timeElapsed.substring(0, timeElapsed.indexOf(' '));
@@ -1099,6 +1046,7 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
     }
 
     private void showLastUpdatedTV() {
+        if (showTimeElapsedTV) return;
         showTimeElapsedTV = true;
         if (!getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED)) return;
         runOnUiThread(() -> {
@@ -1130,6 +1078,7 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
     }
 
     private void hideLastUpdatedTV() {
+        if (!showTimeElapsedTV) return;
         showTimeElapsedTV = false;
         if (tvLastUpdatedTimeDesc.getVisibility() == View.GONE) return;
         if (!getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED)) return;
@@ -1177,14 +1126,14 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
             busLocRef.child("speed").removeEventListener(speedChangedListener);
         if (locationChangedListener != null)
             busLocRef.child("latLong").removeEventListener(locationChangedListener);
-
+        if (updateTimeListener != null)
+            busLocRef.child("timestamp").removeEventListener(updateTimeListener);
         //locationChangedListener = speedChangedListener = sharerChangedListener = null;
         updateListenerToMain = false;
         if (routeExistslistener == null)
             initMainListener();
 
         if (!removeMainListener) busLocRef.addValueEventListener(routeExistslistener);
-        //runOnUiThread(() -> tvVolunteerDetails.setVisibility(View.GONE));
     }
 
     private void initMainListener() {
@@ -1201,7 +1150,7 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
                                 else tvVolunteerDetails.setText(R.string.fetching_location);
 
                     } else {
-                        startTime = System.currentTimeMillis();
+
                         String latLongString = dataSnapshot.child("latLong").getValue(String.class), sharerId = dataSnapshot.child("currentSharerID").getValue(String.class);
                         int speed = dataSnapshot.child("speed").getValue() != null ? (int) (dataSnapshot.child("speed").getValue(int.class) * 3.6 < 1 ? 0 : dataSnapshot.child("speed").getValue(int.class) * 3.6) : 0;
                         Boolean sharingLoc = dataSnapshot.child("sharingLoc").getValue(Boolean.class);
@@ -1242,9 +1191,6 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
                         }
                         if (!updateListenerToMain) {
                             updateListenerToMain = true;
-                            showTimeElapsedTV = true;
-                            showLastUpdatedTV();
-                            startTime = System.currentTimeMillis();
                             updateTimeElapsedTextViews();
                             activateInfoChangedListeners();
                         }
@@ -1277,7 +1223,7 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
         busObject.setInfoUpdatedListener(new BusObject.OnInfoUpdatedListener() {
             @Override
             public void onSharerIdChanged(String newSharerId) {
-                startTime = System.currentTimeMillis();
+
                 if (!getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED))
                     return;
                 runOnUiThread(() -> {
@@ -1309,12 +1255,12 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
 
             @Override
             public void onLocationChanged(LatLng location) {
-                startTime = System.currentTimeMillis();
+
             }
 
             @Override
             public void onOnlineStatusChanged(boolean isOnline) {
-                startTime = System.currentTimeMillis();
+
                 if (!getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.RESUMED)) return;
                 isBusOnlineIV.setTag(isOnline ? "online" : "offline");
                 animateOnlineStatusChange(isOnline);
@@ -1322,7 +1268,7 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
 
             @Override
             public void onSpeedChanged(int newSpeed) {
-                startTime = System.currentTimeMillis();
+
                 if (currentBusObject == null || currentBusObject.getBusMarker() == null) return;
                 currentBusObject.getBusMarker().setTitle("Est. Speed: " + newSpeed + " km/h");
                 if (getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.RESUMED)) {
@@ -1581,7 +1527,6 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
                         }
                         isBusOnlineIV.setTag("online");
                         animateOnlineStatusChange(true);
-                        showLastUpdatedTV();
                         updateTimeElapsedTextViews();
                     }
                 } else if (SSNCEPoint != null) {
@@ -1679,9 +1624,15 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
                                 }
                                 int sep = latLongString.indexOf(',');
                                 LatLng currentlatLongs = new LatLng(sep == 1 ? 0 : Double.parseDouble(latLongString.substring(0, sep)), sep == 1 ? 0 : Double.parseDouble(latLongString.substring(sep + 1)));
-                                if (currentBusObject != null)
-                                    currentBusObject.animateMarker(currentlatLongs, googleMap, handler);
-                                startTime = System.currentTimeMillis();
+                                if (currentBusObject != null) {
+                                    if (currentBusObject.position == null) {
+                                        currentBusObject.getBusMarker().setPosition(currentlatLongs);
+                                    } else {
+                                        currentBusObject.animateBusMarker(currentBusObject.position, currentlatLongs, googleMap, handler, 1050);
+                                    }
+                                    currentBusObject.position = currentlatLongs;
+                                }
+
                             }
 
                             @Override
@@ -1705,22 +1656,11 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
                                     });
                                     deactivateInfoChangedListeners(false);
                                     Thread.currentThread().interrupt();
-                                    return;
+
                                 } else if (currentBusObject.isSharerOnline() != isSharingLoc) {
                                     updateTimeElapsedTextViews();
                                     currentBusObject.setUserOnline(isSharingLoc);
                                 }
-                                /*if (isVolunteerOfThisBus())
-                                    if (!isSharingLoc)
-                                        runOnUiThread(() -> {
-                                            cmdStartVolunteering.setImageResource(R.drawable.ic_location_on);
-                                            cmdStartVolunteering.setEnabled(true);
-                                        });
-                                    else
-                                        runOnUiThread(() -> {
-                                            cmdStartVolunteering.setImageResource(R.drawable.ic_location_on_disabled);
-                                            cmdStartVolunteering.setEnabled(false);
-                                        });*/
                             }
 
                             @Override
@@ -1780,23 +1720,30 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
                             public void onCancelled(@NonNull DatabaseError error) {
                             }
                         };
+                    updateTimeListener = new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot snapshot) {
+                            Long l = snapshot.getValue(Long.class);
+                            if (l != null) {
+                                showLastUpdatedTV();
+                                dataUpdatedTimestamp = l;
+                                updateTimeElapsedTextViews();
+                            } else hideLastUpdatedTV();
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError error) {
+
+                        }
+                    };
                     busLocRef.child("currentSharerID").addValueEventListener(sharerChangedListener);
                     busLocRef.child("sharingLoc").addValueEventListener(onlineStatusChangedListener);
                     busLocRef.child("speed").addValueEventListener(speedChangedListener);
                     busLocRef.child("latLong").addValueEventListener(locationChangedListener);
+                    busLocRef.child("timestamp").addValueEventListener(updateTimeListener);
                     updateListenerToMain = false;
                 }
             }
         }).start();
-        if (timer == null) {
-            timer = new Timer(true);
-            timer.scheduleAtFixedRate(new TimerTask() {
-                @Override
-                public void run() {
-                    if (showTimeElapsedTV)
-                        updateTimeElapsedTextViews();
-                }
-            }, 0, 60000);
-        }
     }
 }

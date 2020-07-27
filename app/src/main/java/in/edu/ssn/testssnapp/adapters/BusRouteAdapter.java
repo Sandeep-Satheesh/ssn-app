@@ -79,17 +79,15 @@ public class BusRouteAdapter extends RecyclerView.Adapter<BusRouteAdapter.BusRou
                     for (BusRouteViewHolder i : holders)
                         i.busRouteCV.setEnabled(false);
                     new CommonUtils.getInternetTime(context, (trueTime) -> {
-                                /*Long startTime = snapshot.child("startTime").getValue(Long.class);
-                                Long endTime = snapshot.child("endTime").getValue(Long.class);*/
-                        if (trueTime == 0) {
+
+                        /*if (trueTime == 0) {
                             Toast.makeText(context, "There was an error fetching the internet time! Access denied!", Toast.LENGTH_LONG).show();
                             for (BusRouteViewHolder i : holders)
                                 i.busRouteCV.setEnabled(true);
                             return;
-                        }
+                        }*/
+                        SharedPref.putLong(context, "time_offset", trueTime - System.currentTimeMillis());
                         String s = new SimpleDateFormat("EEE, MMM dd yyyy, HH:mm").format(trueTime);
-                        long timeOffset = trueTime - System.currentTimeMillis();
-                        SharedPref.putLong(context, "time_offset", timeOffset);
                         DatabaseReference timeRef = FirebaseDatabase.getInstance().getReference("Bus Locations").child("Rules");
                         timeRef.addListenerForSingleValueEvent(new ValueEventListener() {
                             @Override
