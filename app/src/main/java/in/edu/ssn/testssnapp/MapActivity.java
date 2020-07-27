@@ -1625,10 +1625,8 @@ public class MapActivity extends BaseActivity implements OnMapReadyCallback {
                                 int sep = latLongString.indexOf(',');
                                 LatLng currentlatLongs = new LatLng(sep == 1 ? 0 : Double.parseDouble(latLongString.substring(0, sep)), sep == 1 ? 0 : Double.parseDouble(latLongString.substring(sep + 1)));
                                 if (currentBusObject != null) {
-                                    if (currentBusObject.position == null) {
-                                        currentBusObject.getBusMarker().setPosition(currentlatLongs);
-                                    } else {
-                                        currentBusObject.animateBusMarker(currentBusObject.position, currentlatLongs, googleMap, handler, 1050);
+                                    if (currentBusObject.position != null) {
+                                        currentBusObject.animateBusMarker(currentBusObject.position, currentlatLongs, googleMap, handler, 3000);
                                     }
                                     currentBusObject.position = currentlatLongs;
                                 }
