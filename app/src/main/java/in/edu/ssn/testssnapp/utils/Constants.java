@@ -9,7 +9,7 @@ public class Constants {
 
     //TODO: change to 'false' when releasing the app
     public static final Boolean debug_mode = true;
-    public static final String GMAPS_TEST_API_KEY = "AIzaSyBDJgS-zuBIOit05B-4aHO-mTkUhc0MpaI";
+    public static final String GMAPS_TEST_API_KEY = "GMAPS_TEST_KEY";
     public static final String PDF_URL = "pdf_url";
     public static final int BUS_FLEET_SIZE = 45;
     // sqlCipher database related function
@@ -18,7 +18,7 @@ public class Constants {
     public static final String DATABASE_PWD = "TEST_PWD";
 
     //TODO: Replace with actual Server key
-    public static final String SERVER_KEY = "AAAAg8VnAEg:APA91bFGZEMfktbv8rxlnN2Ub6AA8kAKdyJnaR1PXYaT2tbKwNdpNufWB0hVuCYPOIYTK70GP80Fs1jxHnjmlyhdqWyI1IzhO9imbmY3WEEGNwNkR2x3oZNhUlZ5jwMyePoIbFX6cLZg";
+    public static final String SERVER_KEY = "GOOGLE_SERVER_KEY";
 
     //URLs
     public static final String calendar = "https://firebasestorage.googleapis.com/v0/b/ssn-app-web.appspot.com/o/utils%2FCollege%20Calendar%202019%20-20.pdf?alt=media&token=c99c10cd-c124-405c-9a8d-ef6f39ee5e56";
